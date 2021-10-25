@@ -1,11 +1,12 @@
 package producer
 
 import (
-	"github.com/ozonmp/est-water-api/internal/app/repo"
+	"context"
 	"log"
 	"sync"
 	"time"
 
+	"github.com/ozonmp/est-water-api/internal/app/repo"
 	"github.com/ozonmp/est-water-api/internal/app/sender"
 	"github.com/ozonmp/est-water-api/internal/model"
 
@@ -18,7 +19,9 @@ type Producer interface {
 }
 
 type producer struct {
-	n       uint64
+	ctx context.Context
+
+	n uint64
 	timeout time.Duration
 
 	sender sender.EventSender
@@ -28,8 +31,7 @@ type producer struct {
 
 	repo repo.EventRepo
 
-	wg   *sync.WaitGroup
-	done chan bool
+	wg *sync.WaitGroup
 }
 
 type Config struct {
@@ -40,19 +42,18 @@ type Config struct {
 	Repo repo.EventRepo
 }
 
-func NewKafkaProducer(cfg Config) Producer {
+func NewKafkaProducer(ctx context.Context, cfg Config) Producer {
 
 	wg := &sync.WaitGroup{}
-	done := make(chan bool)
 
 	return &producer{
+		ctx: ctx,
 		n: cfg.N,
 		sender: cfg.Sender,
 		events: cfg.Events,
 		workerPool: cfg.WorkerPool,
 		repo: cfg.Repo,
 		wg: wg,
-		done: done,
 	}
 }
 
@@ -80,7 +81,7 @@ func (p *producer) Start() {
 							}
 						})
 					}
-				case <-p.done:
+				case <-p.ctx.Done():
 					return
 				}
 			}
@@ -89,6 +90,5 @@ func (p *producer) Start() {
 }
 
 func (p *producer) Close() {
-	close(p.done)
 	p.wg.Wait()
 }

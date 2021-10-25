@@ -1,6 +1,7 @@
 package retranslator
 
 import (
+	"context"
 	"time"
 
 	"github.com/ozonmp/est-water-api/internal/app/consumer"
@@ -32,14 +33,16 @@ type Config struct {
 }
 
 type retranslator struct {
+	ctx context.Context
 	events chan model.WaterEvent
 	consumer consumer.Consumer
 	producer producer.Producer
 	workerPool *workerpool.WorkerPool
 }
 
-func NewRetranslator(cfg Config) Retranslator {
+func NewRetranslator(ctx context.Context, cfg Config) Retranslator {
 	events := make(chan model.WaterEvent, cfg.ChannelSize)
+
 	workerPool := workerpool.New(cfg.WorkerCount)
 
 	consumerCfg := consumer.Config{
@@ -50,7 +53,7 @@ func NewRetranslator(cfg Config) Retranslator {
 		Timeout: cfg.ConsumeTimeout,
 	}
 
-	consumer := consumer.NewDbConsumer(consumerCfg)
+	consumer := consumer.NewDbConsumer(ctx, consumerCfg)
 
 	producerCfg := producer.Config{
 		N: cfg.ProducerCount,
@@ -60,9 +63,10 @@ func NewRetranslator(cfg Config) Retranslator {
 		Repo: cfg.Repo,
 	}
 
-	producer := producer.NewKafkaProducer(producerCfg)
+	producer := producer.NewKafkaProducer(ctx, producerCfg)
 
 	return &retranslator{
+		ctx: ctx,
 		events: events,
 		consumer: consumer,
 		producer: producer,
@@ -79,4 +83,5 @@ func (r *retranslator) Close() {
 	r.consumer.Close()
 	r.producer.Close()
 	r.workerPool.StopWait()
+	close(r.events)
 }

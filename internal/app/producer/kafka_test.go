@@ -1,15 +1,32 @@
 package producer
 
 import (
+	"context"
 	"errors"
-	"github.com/gammazero/workerpool"
-	"github.com/golang/mock/gomock"
-	"github.com/ozonmp/est-water-api/internal/mocks"
-	"github.com/ozonmp/est-water-api/internal/model"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/ozonmp/est-water-api/internal/mocks"
+	"github.com/ozonmp/est-water-api/internal/model"
+
+	"github.com/gammazero/workerpool"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 )
+
+var dummyEvent = model.WaterEvent{
+	ID: uint64(123),
+	Type: model.Created,
+	Status: model.Processed,
+	Entity: model.NewWater(
+		uint64(123),
+		"name",
+		"model",
+		"manufacturer",
+		"material",
+		100,
+	),
+}
 
 func TestProducerSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -21,20 +38,6 @@ func TestProducerSuccess(t *testing.T) {
 	eventsCh := make(chan model.WaterEvent, eventsCount-2)
 
 	workerPool := workerpool.New(1)
-
-	dummyEvent := model.WaterEvent{
-		ID: uint64(123),
-		Type: model.Created,
-		Status: model.Processed,
-		Entity: model.NewWater(
-			uint64(123),
-			"name",
-			"model",
-			"manufacturer",
-			"material",
-			100,
-		),
-	}
 
 	sender.EXPECT().Send(gomock.Eq(&dummyEvent)).DoAndReturn(func(event *model.WaterEvent) error {
 		return nil
@@ -52,7 +55,9 @@ func TestProducerSuccess(t *testing.T) {
 		Repo: repo,
 	}
 
-	kafka := NewKafkaProducer(cfg)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	kafka := NewKafkaProducer(ctx, cfg)
 
 	kafka.Start()
 
@@ -61,6 +66,9 @@ func TestProducerSuccess(t *testing.T) {
 	}
 
 	time.Sleep(100*time.Millisecond)
+
+	cancel()
+
 	kafka.Close()
 
 	// Проверяем, что все события обработаны
@@ -78,20 +86,6 @@ func TestProducerError(t *testing.T) {
 
 	workerPool := workerpool.New(1)
 
-	dummyEvent := model.WaterEvent{
-		ID: uint64(123),
-		Type: model.Created,
-		Status: model.Processed,
-		Entity: model.NewWater(
-			uint64(123),
-			"name",
-			"model",
-			"manufacturer",
-			"material",
-			100,
-		),
-	}
-
 	sender.EXPECT().Send(gomock.Eq(&dummyEvent)).DoAndReturn(func(event *model.WaterEvent) error {
 		return errors.New("some error")
 	}).Times(eventsCount)
@@ -108,7 +102,9 @@ func TestProducerError(t *testing.T) {
 		Repo: repo,
 	}
 
-	kafka := NewKafkaProducer(cfg)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	kafka := NewKafkaProducer(ctx, cfg)
 
 	kafka.Start()
 
@@ -117,6 +113,9 @@ func TestProducerError(t *testing.T) {
 	}
 
 	time.Sleep(100*time.Millisecond)
+
+	cancel()
+
 	kafka.Close()
 
 	// Проверяем, что все события обработаны

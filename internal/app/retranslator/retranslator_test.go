@@ -1,6 +1,7 @@
 package retranslator
 
 import (
+	"context"
 	"errors"
 	"sync/atomic"
 	"testing"
@@ -12,6 +13,20 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
+var dummyEvent = model.WaterEvent{
+	ID: uint64(123),
+	Type: model.Created,
+	Status: model.Processed,
+	Entity: model.NewWater(
+		uint64(123),
+		"name",
+		"model",
+		"manufacturer",
+		"material",
+		100,
+	),
+}
+
 func TestRetranslatorSuccess(t *testing.T) {
 	t.Parallel()
 
@@ -21,19 +36,7 @@ func TestRetranslatorSuccess(t *testing.T) {
 
 	sender := mocks.NewMockEventSender(ctrl)
 
-	dummyEvent := model.WaterEvent{
-		ID: uint64(123),
-		Type: model.Created,
-		Status: model.Processed,
-		Entity: model.NewWater(
-			uint64(123),
-			"name",
-			"model",
-			"manufacturer",
-			"material",
-			100,
-		),
-	}
+	ctx, cancel := context.WithCancel(context.Background())
 
 	eventsCount := 28
 	var allEvents []model.WaterEvent
@@ -79,9 +82,10 @@ func TestRetranslatorSuccess(t *testing.T) {
 		return nil
 	}).Times(eventsCount)
 
-	transponder := NewRetranslator(cfg)
+	transponder := NewRetranslator(ctx, cfg)
 	transponder.Start()
 	time.Sleep(2*cfg.ConsumeTimeout + 100*time.Millisecond)
+	cancel()
 	transponder.Close()
 }
 
@@ -94,19 +98,7 @@ func TestRetranslatorError(t *testing.T) {
 
 	sender := mocks.NewMockEventSender(ctrl)
 
-	dummyEvent := model.WaterEvent{
-		ID: uint64(123),
-		Type: model.Created,
-		Status: model.Processed,
-		Entity: model.NewWater(
-			uint64(123),
-			"name",
-			"model",
-			"manufacturer",
-			"material",
-			100,
-		),
-	}
+	ctx, cancel := context.WithCancel(context.Background())
 
 	cfg := Config {
 		ChannelSize: 512,
@@ -131,8 +123,9 @@ func TestRetranslatorError(t *testing.T) {
 		return nil
 	}).Times(int(cfg.ConsumerCount))
 
-	transponder := NewRetranslator(cfg)
+	transponder := NewRetranslator(ctx, cfg)
 	transponder.Start()
 	time.Sleep(cfg.ConsumeTimeout + 100*time.Millisecond)
+	cancel()
 	transponder.Close()
 }
