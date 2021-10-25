@@ -1,7 +1,7 @@
 package consumer
 
 import (
-	"github.com/stretchr/testify/assert"
+	"context"
 	"testing"
 	"time"
 
@@ -9,7 +9,22 @@ import (
 	"github.com/ozonmp/est-water-api/internal/model"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 )
+
+var dummyEvent = model.WaterEvent{
+	ID: uint64(123),
+	Type: model.Created,
+	Status: model.Processed,
+	Entity: model.NewWater(
+		uint64(123),
+		"name",
+		"model",
+		"manufacturer",
+		"material",
+		100,
+	),
+}
 
 func TestConsumerSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -21,20 +36,6 @@ func TestConsumerSuccess(t *testing.T) {
 	consumerCount := 5
 
 	eventsCh := make(chan model.WaterEvent, consumerCount-2)
-
-	dummyEvent := model.WaterEvent{
-		ID: 1,
-		Type: model.Created,
-		Status: model.Processed,
-		Entity: model.NewWater(
-			1,
-			"name",
-			"model",
-			"manufacturer",
-			"material",
-			100,
-		),
-	}
 
 	repo.EXPECT().Lock(gomock.Eq(batchSize)).DoAndReturn(func(n uint64) ([]model.WaterEvent, error) {
 		return []model.WaterEvent{dummyEvent}, nil
@@ -48,7 +49,9 @@ func TestConsumerSuccess(t *testing.T) {
 		Timeout: time.Second,
 	}
 
-	db := NewDbConsumer(cfg)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	db := NewDbConsumer(ctx, cfg)
 
 	db.Start()
 
@@ -58,6 +61,8 @@ func TestConsumerSuccess(t *testing.T) {
 	}
 	// Проверяем, что количество событий в канале было равно количеству потребителей
 	assert.Equal(t, 0, len(eventsCh))
+
+	cancel()
 
 	db.Close()
 }

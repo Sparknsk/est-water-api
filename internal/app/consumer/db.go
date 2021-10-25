@@ -1,6 +1,7 @@
 package consumer
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -14,6 +15,8 @@ type Consumer interface {
 }
 
 type consumer struct {
+	ctx context.Context
+
 	n uint64
 	events chan<- model.WaterEvent
 
@@ -34,19 +37,18 @@ type Config struct {
 	Timeout time.Duration
 }
 
-func NewDbConsumer(cfg Config) Consumer {
+func NewDbConsumer(ctx context.Context, cfg Config) Consumer {
 
 	wg := &sync.WaitGroup{}
-	done := make(chan bool)
 
 	return &consumer{
+		ctx: ctx,
 		n: cfg.N,
 		batchSize: cfg.BatchSize,
 		timeout: cfg.Timeout,
 		repo: cfg.Repo,
 		events: cfg.Events,
 		wg: wg,
-		done: done,
 	}
 }
 
@@ -69,7 +71,7 @@ func (c *consumer) Start() {
 							c.events <- event
 						}
 					}
-				case <-c.done:
+				case <-c.ctx.Done():
 					return
 				}
 			}
@@ -78,6 +80,5 @@ func (c *consumer) Start() {
 }
 
 func (c *consumer) Close() {
-	close(c.done)
 	c.wg.Wait()
 }
