@@ -28,6 +28,10 @@ type producer struct {
 	events <-chan model.WaterEvent
 
 	workerPool *workerpool.WorkerPool
+	workerBatchSize uint64
+	workerBatchTimeout time.Duration
+	workerBatchUpdateCh chan uint64
+	workerBatchCleanCh chan uint64
 
 	repo repo.EventRepo
 
@@ -39,6 +43,8 @@ type Config struct {
 	Sender sender.EventSender
 	Events <-chan model.WaterEvent
 	WorkerPool *workerpool.WorkerPool
+	WorkerBatchSize uint64
+	WorkerBatchTimeout time.Duration
 	Repo repo.EventRepo
 }
 
@@ -46,18 +52,81 @@ func NewKafkaProducer(ctx context.Context, cfg Config) Producer {
 
 	wg := &sync.WaitGroup{}
 
+	workerBatchUpdateCh := make(chan uint64, cfg.WorkerBatchSize)
+	workerBatchCleanCh := make(chan uint64, cfg.WorkerBatchSize)
+
 	return &producer{
 		ctx: ctx,
 		n: cfg.N,
 		sender: cfg.Sender,
 		events: cfg.Events,
 		workerPool: cfg.WorkerPool,
+		workerBatchSize: cfg.WorkerBatchSize,
+		workerBatchTimeout: cfg.WorkerBatchTimeout,
+		workerBatchUpdateCh: workerBatchUpdateCh,
+		workerBatchCleanCh: workerBatchCleanCh,
 		repo: cfg.Repo,
 		wg: wg,
 	}
 }
 
+func (p *producer) workerBatchSendUpdate() {
+	batchLength := len(p.workerBatchUpdateCh)
+
+	if batchLength > 0 {
+		eventIDs := make([]uint64, 0, batchLength)
+		for k := 0; k < batchLength; k++ {
+			eventIDs = append(eventIDs, <-p.workerBatchUpdateCh)
+		}
+
+		p.workerPool.Submit(func() {
+			if err := p.repo.Unlock(eventIDs); err != nil {
+				log.Printf("EventRepo Unlock events error: %v\n", err)
+			}
+		})
+	}
+}
+
+func (p *producer) workerBatchSendClean() {
+	batchLength := len(p.workerBatchCleanCh)
+
+	if batchLength > 0 {
+		eventIDs := make([]uint64, 0, batchLength)
+		for k := 0; k < batchLength; k++ {
+			eventIDs = append(eventIDs, <-p.workerBatchCleanCh)
+		}
+
+		p.workerPool.Submit(func() {
+			if err := p.repo.Remove(eventIDs); err != nil {
+				log.Printf("EventRepo Remove events error: %v\n", err)
+			}
+		})
+	}
+}
+
+func (p *producer) workerBatchSend()  {
+	defer p.wg.Done()
+	ticker := time.NewTicker(p.workerBatchTimeout)
+	for {
+		select {
+		// Отправим события, если долго не приходят новые
+		case <-ticker.C:
+			p.workerBatchSendUpdate()
+			p.workerBatchSendClean()
+		// Завершаем необработанные события
+		case <-p.ctx.Done():
+			p.workerBatchSendUpdate()
+			p.workerBatchSendClean()
+			return
+		}
+	}
+}
+
 func (p *producer) Start() {
+	p.wg.Add(1)
+
+	go p.workerBatchSend()
+
 	for i := uint64(0); i < p.n; i++ {
 		p.wg.Add(1)
 
@@ -67,19 +136,17 @@ func (p *producer) Start() {
 				select {
 				case event := <-p.events:
 					if err := p.sender.Send(&event); err != nil {
-						//log.Printf("EventSender Send event error: %v\n", err)
+						log.Printf("EventSender Send event error: %v\n", err)
 
-						p.workerPool.Submit(func() {
-							if err := p.repo.Unlock([]uint64{event.ID}); err != nil {
-								log.Printf("EventRepo Unlock error: %v\n", err)
-							}
-						})
+						p.workerBatchUpdateCh <- event.ID
+						if len(p.workerBatchUpdateCh) == int(p.workerBatchSize) {
+							p.workerBatchSendUpdate()
+						}
 					} else {
-						p.workerPool.Submit(func() {
-							if err := p.repo.Remove([]uint64{event.ID}); err != nil {
-								log.Printf("EventRepo Remove error: %v\n", err)
-							}
-						})
+						p.workerBatchCleanCh <- event.ID
+						if len(p.workerBatchCleanCh) == int(p.workerBatchSize) {
+							p.workerBatchSendClean()
+						}
 					}
 				case <-p.ctx.Done():
 					return
@@ -91,4 +158,6 @@ func (p *producer) Start() {
 
 func (p *producer) Close() {
 	p.wg.Wait()
+	close(p.workerBatchUpdateCh)
+	close(p.workerBatchCleanCh)
 }

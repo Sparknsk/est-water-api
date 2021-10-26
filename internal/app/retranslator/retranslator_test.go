@@ -3,6 +3,7 @@ package retranslator
 import (
 	"context"
 	"errors"
+	"math"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -51,6 +52,8 @@ func TestRetranslatorSuccess(t *testing.T) {
 		ConsumeTimeout: time.Second,
 		ProducerCount: 3,
 		WorkerCount: 1,
+		WorkerBatchSize: 5,
+		WorkerBatchTimeout: time.Second*10,
 		Repo: repo,
 		Sender: sender,
 	}
@@ -78,9 +81,12 @@ func TestRetranslatorSuccess(t *testing.T) {
 		return nil
 	}).Times(eventsCount)
 
-	repo.EXPECT().Remove(gomock.Eq([]uint64{dummyEvent.ID})).DoAndReturn(func(eventIDs []uint64) error {
+	// Remove будет вызван в зависимости от количества событий eventsCount полученных из консьюмера
+	// разбитых на пачки по cfg.WorkerBatchSize
+	removeTimes := int(math.Round(float64(eventsCount)/float64(cfg.WorkerBatchSize)))
+	repo.EXPECT().Remove(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
 		return nil
-	}).Times(eventsCount)
+	}).Times(removeTimes)
 
 	transponder := NewRetranslator(ctx, cfg)
 	transponder.Start()
@@ -107,6 +113,8 @@ func TestRetranslatorError(t *testing.T) {
 		ConsumeTimeout: time.Second,
 		ProducerCount: 3,
 		WorkerCount: 1,
+		WorkerBatchSize: 5,
+		WorkerBatchTimeout: time.Millisecond*100,
 		Repo: repo,
 		Sender: sender,
 	}
@@ -119,9 +127,9 @@ func TestRetranslatorError(t *testing.T) {
 		return errors.New("some error")
 	}).Times(int(cfg.ConsumerCount))
 
-	repo.EXPECT().Unlock(gomock.Eq([]uint64{dummyEvent.ID})).DoAndReturn(func(eventIDs []uint64) error {
+	repo.EXPECT().Unlock(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
 		return nil
-	}).Times(int(cfg.ConsumerCount))
+	}).AnyTimes()
 
 	transponder := NewRetranslator(ctx, cfg)
 	transponder.Start()

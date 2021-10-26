@@ -24,6 +24,8 @@ func main() {
 
 		ProducerCount: 1,
 		WorkerCount:   2,
+		WorkerBatchSize: 5,
+		WorkerBatchTimeout: time.Millisecond*100,
 	}
 
 	transponder := retranslator.NewRetranslator(ctx, cfg)
