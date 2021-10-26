@@ -43,15 +43,17 @@ func TestProducerSuccess(t *testing.T) {
 		return nil
 	}).Times(eventsCount)
 
-	repo.EXPECT().Remove(gomock.Eq([]uint64{dummyEvent.ID})).DoAndReturn(func(eventIDs []uint64) error {
+	repo.EXPECT().Remove(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
 		return nil
-	}).Times(eventsCount)
+	}).AnyTimes()
 
 	cfg := Config{
 		N: uint64(3),
 		Sender: sender,
 		Events: eventsCh,
 		WorkerPool: workerPool,
+		WorkerBatchSize: 5,
+		WorkerBatchTimeout: time.Millisecond*100,
 		Repo: repo,
 	}
 
@@ -90,15 +92,17 @@ func TestProducerError(t *testing.T) {
 		return errors.New("some error")
 	}).Times(eventsCount)
 
-	repo.EXPECT().Unlock(gomock.Eq([]uint64{dummyEvent.ID})).DoAndReturn(func(eventIDs []uint64) error {
+	repo.EXPECT().Unlock(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
 		return nil
-	}).Times(eventsCount)
+	}).AnyTimes()
 
 	cfg := Config{
 		N: uint64(3),
 		Sender: sender,
 		Events: eventsCh,
 		WorkerPool: workerPool,
+		WorkerBatchSize: 5,
+		WorkerBatchTimeout: time.Millisecond*100,
 		Repo: repo,
 	}
 

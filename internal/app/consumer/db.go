@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 
@@ -64,6 +65,7 @@ func (c *consumer) Start() {
 				case <-ticker.C:
 					events, err := c.repo.Lock(c.batchSize)
 					if err != nil {
+						log.Printf("EventRepo Lock events error: %v\n", err)
 						continue
 					}
 					for _, event := range events {

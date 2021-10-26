@@ -27,6 +27,8 @@ type Config struct {
 
 	ProducerCount uint64
 	WorkerCount int
+	WorkerBatchSize uint64
+	WorkerBatchTimeout time.Duration
 
 	Repo repo.EventRepo
 	Sender sender.EventSender
@@ -60,6 +62,8 @@ func NewRetranslator(ctx context.Context, cfg Config) Retranslator {
 		Sender: cfg.Sender,
 		Events: events,
 		WorkerPool: workerPool,
+		WorkerBatchSize: cfg.WorkerBatchSize,
+		WorkerBatchTimeout: cfg.WorkerBatchTimeout,
 		Repo: cfg.Repo,
 	}
 
