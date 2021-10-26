@@ -88,8 +88,8 @@ func TestRetranslatorSuccess(t *testing.T) {
 		return nil
 	}).Times(removeTimes)
 
-	transponder := NewRetranslator(ctx, cfg)
-	transponder.Start()
+	transponder := NewRetranslator(cfg)
+	transponder.Start(ctx)
 	time.Sleep(2*cfg.ConsumeTimeout + 100*time.Millisecond)
 	cancel()
 	transponder.Close()
@@ -131,8 +131,8 @@ func TestRetranslatorError(t *testing.T) {
 		return nil
 	}).AnyTimes()
 
-	transponder := NewRetranslator(ctx, cfg)
-	transponder.Start()
+	transponder := NewRetranslator(cfg)
+	transponder.Start(ctx)
 	time.Sleep(cfg.ConsumeTimeout + 100*time.Millisecond)
 	cancel()
 	transponder.Close()

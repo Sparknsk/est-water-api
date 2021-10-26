@@ -14,13 +14,11 @@ import (
 )
 
 type Producer interface {
-	Start()
+	Start(ctx context.Context)
 	Close()
 }
 
 type producer struct {
-	ctx context.Context
-
 	n uint64
 	timeout time.Duration
 
@@ -48,7 +46,7 @@ type Config struct {
 	Repo repo.EventRepo
 }
 
-func NewKafkaProducer(ctx context.Context, cfg Config) Producer {
+func NewKafkaProducer(cfg Config) Producer {
 
 	wg := &sync.WaitGroup{}
 
@@ -56,7 +54,6 @@ func NewKafkaProducer(ctx context.Context, cfg Config) Producer {
 	workerBatchCleanCh := make(chan uint64, cfg.WorkerBatchSize)
 
 	return &producer{
-		ctx: ctx,
 		n: cfg.N,
 		sender: cfg.Sender,
 		events: cfg.Events,
@@ -70,11 +67,11 @@ func NewKafkaProducer(ctx context.Context, cfg Config) Producer {
 	}
 }
 
-func (p *producer) Start() {
+func (p *producer) Start(ctx context.Context) {
 	p.wg.Add(1)
 
 	eventSentNotifyCh := make(chan bool, 1)
-	go p.workerBatchSend(eventSentNotifyCh)
+	go p.workerBatchSend(ctx, eventSentNotifyCh)
 
 	for i := uint64(0); i < p.n; i++ {
 		p.wg.Add(1)
@@ -93,7 +90,7 @@ func (p *producer) Start() {
 						p.workerBatchCleanCh <- event.ID
 						eventSentNotifyCh<- true
 					}
-				case <-p.ctx.Done():
+				case <-ctx.Done():
 					return
 				}
 			}
@@ -141,7 +138,7 @@ func (p *producer) workerBatchSendClean() {
 	}
 }
 
-func (p *producer) workerBatchSend(eventSentNotifyCh chan bool)  {
+func (p *producer) workerBatchSend(ctx context.Context, eventSentNotifyCh chan bool)  {
 	defer p.wg.Done()
 	ticker := time.NewTicker(p.workerBatchTimeout)
 	for {
@@ -161,7 +158,7 @@ func (p *producer) workerBatchSend(eventSentNotifyCh chan bool)  {
 			p.workerBatchSendUpdate()
 			p.workerBatchSendClean()
 		// Завершаем необработанные события
-		case <-p.ctx.Done():
+		case <-ctx.Done():
 			p.workerBatchSendUpdate()
 			p.workerBatchSendClean()
 			return

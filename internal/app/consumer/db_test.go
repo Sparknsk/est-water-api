@@ -51,9 +51,9 @@ func TestConsumerSuccess(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	db := NewDbConsumer(ctx, cfg)
+	db := NewDbConsumer(cfg)
 
-	db.Start()
+	db.Start(ctx)
 
 	// Проверяем, что в канале находится исходное событие
 	for i := 0; i < consumerCount; i++ {

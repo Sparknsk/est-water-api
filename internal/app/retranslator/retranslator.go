@@ -14,7 +14,7 @@ import (
 )
 
 type Retranslator interface {
-	Start()
+	Start(ctx context.Context)
 	Close()
 }
 
@@ -35,14 +35,13 @@ type Config struct {
 }
 
 type retranslator struct {
-	ctx context.Context
 	events chan model.WaterEvent
 	consumer consumer.Consumer
 	producer producer.Producer
 	workerPool *workerpool.WorkerPool
 }
 
-func NewRetranslator(ctx context.Context, cfg Config) Retranslator {
+func NewRetranslator(cfg Config) Retranslator {
 	events := make(chan model.WaterEvent, cfg.ChannelSize)
 
 	workerPool := workerpool.New(cfg.WorkerCount)
@@ -55,7 +54,7 @@ func NewRetranslator(ctx context.Context, cfg Config) Retranslator {
 		Timeout: cfg.ConsumeTimeout,
 	}
 
-	consumer := consumer.NewDbConsumer(ctx, consumerCfg)
+	consumer := consumer.NewDbConsumer(consumerCfg)
 
 	producerCfg := producer.Config{
 		N: cfg.ProducerCount,
@@ -67,10 +66,9 @@ func NewRetranslator(ctx context.Context, cfg Config) Retranslator {
 		Repo: cfg.Repo,
 	}
 
-	producer := producer.NewKafkaProducer(ctx, producerCfg)
+	producer := producer.NewKafkaProducer(producerCfg)
 
 	return &retranslator{
-		ctx: ctx,
 		events: events,
 		consumer: consumer,
 		producer: producer,
@@ -78,9 +76,9 @@ func NewRetranslator(ctx context.Context, cfg Config) Retranslator {
 	}
 }
 
-func (r *retranslator) Start() {
-	r.consumer.Start()
-	r.producer.Start()
+func (r *retranslator) Start(ctx context.Context) {
+	r.consumer.Start(ctx)
+	r.producer.Start(ctx)
 }
 
 func (r *retranslator) Close() {

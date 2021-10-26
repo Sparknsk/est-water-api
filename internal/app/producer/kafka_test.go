@@ -59,9 +59,9 @@ func TestProducerSuccess(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	kafka := NewKafkaProducer(ctx, cfg)
+	kafka := NewKafkaProducer(cfg)
 
-	kafka.Start()
+	kafka.Start(ctx)
 
 	for i := 0; i < eventsCount; i++ {
 		eventsCh<- dummyEvent
@@ -108,9 +108,9 @@ func TestProducerError(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	kafka := NewKafkaProducer(ctx, cfg)
+	kafka := NewKafkaProducer(cfg)
 
-	kafka.Start()
+	kafka.Start(ctx)
 
 	for i := 0; i < eventsCount; i++ {
 		eventsCh<- dummyEvent
