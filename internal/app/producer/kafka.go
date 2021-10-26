@@ -70,6 +70,43 @@ func NewKafkaProducer(ctx context.Context, cfg Config) Producer {
 	}
 }
 
+func (p *producer) Start() {
+	p.wg.Add(1)
+
+	eventSentNotifyCh := make(chan bool, 1)
+	go p.workerBatchSend(eventSentNotifyCh)
+
+	for i := uint64(0); i < p.n; i++ {
+		p.wg.Add(1)
+
+		go func() {
+			defer p.wg.Done()
+			for {
+				select {
+				case event := <-p.events:
+					if err := p.sender.Send(&event); err != nil {
+						log.Printf("EventSender Send event error: %v\n", err)
+
+						p.workerBatchUpdateCh <- event.ID
+						eventSentNotifyCh<- true
+					} else {
+						p.workerBatchCleanCh <- event.ID
+						eventSentNotifyCh<- true
+					}
+				case <-p.ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+}
+
+func (p *producer) Close() {
+	p.wg.Wait()
+	close(p.workerBatchUpdateCh)
+	close(p.workerBatchCleanCh)
+}
+
 func (p *producer) workerBatchSendUpdate() {
 	batchLength := len(p.workerBatchUpdateCh)
 
@@ -104,11 +141,21 @@ func (p *producer) workerBatchSendClean() {
 	}
 }
 
-func (p *producer) workerBatchSend()  {
+func (p *producer) workerBatchSend(eventSentNotifyCh chan bool)  {
 	defer p.wg.Done()
 	ticker := time.NewTicker(p.workerBatchTimeout)
 	for {
 		select {
+		case <-eventSentNotifyCh:
+			if len(p.workerBatchUpdateCh) == int(p.workerBatchSize) {
+				ticker.Reset(p.workerBatchTimeout)
+				p.workerBatchSendUpdate()
+			}
+
+			if len(p.workerBatchCleanCh) == int(p.workerBatchSize) {
+				ticker.Reset(p.workerBatchTimeout)
+				p.workerBatchSendClean()
+			}
 		// Отправим события, если долго не приходят новые
 		case <-ticker.C:
 			p.workerBatchSendUpdate()
@@ -120,44 +167,4 @@ func (p *producer) workerBatchSend()  {
 			return
 		}
 	}
-}
-
-func (p *producer) Start() {
-	p.wg.Add(1)
-
-	go p.workerBatchSend()
-
-	for i := uint64(0); i < p.n; i++ {
-		p.wg.Add(1)
-
-		go func() {
-			defer p.wg.Done()
-			for {
-				select {
-				case event := <-p.events:
-					if err := p.sender.Send(&event); err != nil {
-						log.Printf("EventSender Send event error: %v\n", err)
-
-						p.workerBatchUpdateCh <- event.ID
-						if len(p.workerBatchUpdateCh) == int(p.workerBatchSize) {
-							p.workerBatchSendUpdate()
-						}
-					} else {
-						p.workerBatchCleanCh <- event.ID
-						if len(p.workerBatchCleanCh) == int(p.workerBatchSize) {
-							p.workerBatchSendClean()
-						}
-					}
-				case <-p.ctx.Done():
-					return
-				}
-			}
-		}()
-	}
-}
-
-func (p *producer) Close() {
-	p.wg.Wait()
-	close(p.workerBatchUpdateCh)
-	close(p.workerBatchCleanCh)
 }
