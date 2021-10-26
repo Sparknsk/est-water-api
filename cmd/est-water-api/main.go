@@ -28,8 +28,8 @@ func main() {
 		WorkerBatchTimeout: time.Millisecond*100,
 	}
 
-	transponder := retranslator.NewRetranslator(ctx, cfg)
-	transponder.Start()
+	transponder := retranslator.NewRetranslator(cfg)
+	transponder.Start(ctx)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 

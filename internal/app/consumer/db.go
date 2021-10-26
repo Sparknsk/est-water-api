@@ -11,13 +11,11 @@ import (
 )
 
 type Consumer interface {
-	Start()
+	Start(ctx context.Context)
 	Close()
 }
 
 type consumer struct {
-	ctx context.Context
-
 	n uint64
 	events chan<- model.WaterEvent
 
@@ -38,12 +36,11 @@ type Config struct {
 	Timeout time.Duration
 }
 
-func NewDbConsumer(ctx context.Context, cfg Config) Consumer {
+func NewDbConsumer(cfg Config) Consumer {
 
 	wg := &sync.WaitGroup{}
 
 	return &consumer{
-		ctx: ctx,
 		n: cfg.N,
 		batchSize: cfg.BatchSize,
 		timeout: cfg.Timeout,
@@ -53,7 +50,7 @@ func NewDbConsumer(ctx context.Context, cfg Config) Consumer {
 	}
 }
 
-func (c *consumer) Start() {
+func (c *consumer) Start(ctx context.Context) {
 	for i := uint64(0); i < c.n; i++ {
 		c.wg.Add(1)
 
@@ -73,7 +70,7 @@ func (c *consumer) Start() {
 							c.events <- event
 						}
 					}
-				case <-c.ctx.Done():
+				case <-ctx.Done():
 					return
 				}
 			}
