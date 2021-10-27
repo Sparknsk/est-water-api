@@ -3,7 +3,6 @@ package retranslator
 import (
 	"context"
 	"errors"
-	"math"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -14,126 +13,150 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-var dummyEvent = model.WaterEvent{
-	ID: uint64(123),
-	Type: model.Created,
-	Status: model.Processed,
-	Entity: model.NewWater(
-		uint64(123),
-		"name",
-		"model",
-		"manufacturer",
-		"material",
-		100,
-	),
+func generateEvents(count int) []model.WaterEvent {
+	dummyEvent := model.WaterEvent{
+		ID: uint64(1),
+		Type: model.Created,
+		Status: model.Processed,
+		Entity: model.NewWater(
+			uint64(1),
+			"name",
+			"model",
+			"manufacturer",
+			"material",
+			100,
+		),
+	}
+
+	events := make([]model.WaterEvent, 0, count)
+	for i := 0; i < count; i++ {
+		events = append(events, dummyEvent)
+	}
+	return events
 }
 
-func TestRetranslatorSuccess(t *testing.T) {
-	t.Parallel()
+func TestRetranslator(t *testing.T) {
 
-	ctrl := gomock.NewController(t)
-
-	repo := mocks.NewMockEventRepo(ctrl)
-
-	sender := mocks.NewMockEventSender(ctrl)
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	eventsCount := 28
-	var allEvents []model.WaterEvent
-	for i := 1; i <= eventsCount; i++ {
-		allEvents = append(allEvents, dummyEvent)
+	testCases := map[string]struct {
+		eventsCount int
+		consumerCount uint64
+		producerCount uint64
+	}{
+		"Success: small events count": {eventsCount: 20, consumerCount: 2, producerCount: 2},
+		"Success: big events count (consumers > producers)": {eventsCount: 207, consumerCount: 15, producerCount: 5},
+		"Success: big events count (consumers < producers)": {eventsCount: 207, consumerCount: 5, producerCount: 15},
+		"Success: huge events count (consumers < producers)": {eventsCount: 2000, consumerCount: 50, producerCount: 150},
+		"Success: huge events count (consumers > producers)": {eventsCount: 2000, consumerCount: 150, producerCount: 50},
 	}
 
-	cfg := Config {
-		ChannelSize: 512,
-		ConsumerCount: 2,
-		ConsumeSize: 10,
-		ConsumeTimeout: time.Second,
-		ProducerCount: 3,
-		WorkerCount: 1,
-		WorkerBatchSize: 5,
-		WorkerBatchTimeout: time.Second*10,
-		Repo: repo,
-		Sender: sender,
+	for testName, testCase := range testCases {
+		testName := testName
+		t.Run(testName, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			repo := mocks.NewMockEventRepo(ctrl)
+			sender := mocks.NewMockEventSender(ctrl)
+
+			ctx, cancel := context.WithCancel(context.Background())
+
+			events := generateEvents(testCase.eventsCount)
+
+			cfg := Config {
+				ChannelSize: 512,
+				ConsumerCount: testCase.consumerCount,
+				ConsumeSize: 10,
+				ConsumeTimeout: time.Millisecond*2,
+				ProducerCount: testCase.producerCount,
+				WorkerCount: 1,
+				WorkerBatchSize: 5,
+				WorkerBatchTimeout: time.Second,
+				Repo: repo,
+				Sender: sender,
+			}
+
+			eventsDone := make(chan bool, 1)
+			startId := uint64(0)
+			stopId := cfg.ConsumeSize
+			repo.EXPECT().Lock(gomock.Eq(cfg.ConsumeSize)).DoAndReturn(func(n uint64) ([]model.WaterEvent, error) {
+				time.Sleep(time.Millisecond*100)
+
+				start := atomic.LoadUint64(&startId)
+				atomic.AddUint64(&startId, n)
+				stop := atomic.LoadUint64(&stopId)
+				atomic.AddUint64(&stopId, n)
+
+				if stop > uint64(testCase.eventsCount) {
+					stop = uint64(testCase.eventsCount)
+				}
+
+				if start > stop || testCase.eventsCount == 0 {
+					if len(eventsDone) < 1 {
+						eventsDone <- true
+					}
+					return nil, nil
+				}
+
+				return events[start:stop], nil
+			}).AnyTimes()
+
+			sender.EXPECT().Send(&events[0]).DoAndReturn(func(event *model.WaterEvent) error {
+				return nil
+			}).AnyTimes()
+
+			repo.EXPECT().Remove(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
+				return nil
+			}).AnyTimes()
+
+			repo.EXPECT().Unlock(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
+				return nil
+			}).AnyTimes()
+
+			transponder := NewRetranslator(cfg)
+			transponder.Start(ctx)
+			<-eventsDone
+			cancel()
+			transponder.Close()
+		})
 	}
 
-	startId := int32(0)
-	stopId := int32(cfg.ConsumeSize)
-	repo.EXPECT().Lock(gomock.Eq(cfg.ConsumeSize)).DoAndReturn(func(n uint64) ([]model.WaterEvent, error) {
-		start := atomic.LoadInt32(&startId)
-		atomic.AddInt32(&startId, int32(n))
-		stop := atomic.LoadInt32(&stopId)
-		atomic.AddInt32(&stopId, int32(n))
+	t.Run("Error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		repo := mocks.NewMockEventRepo(ctrl)
+		sender := mocks.NewMockEventSender(ctrl)
 
-		if stop > int32(eventsCount) {
-			stop = int32(eventsCount)
+		ctx, cancel := context.WithCancel(context.Background())
+
+		cfg := Config {
+			ChannelSize: 512,
+			ConsumerCount: 1,
+			ConsumeSize: 10,
+			ConsumeTimeout: time.Millisecond*2,
+			ProducerCount: 1,
+			WorkerCount: 1,
+			WorkerBatchSize: 5,
+			WorkerBatchTimeout: time.Second,
+			Repo: repo,
+			Sender: sender,
 		}
 
-		if start > stop {
-			return nil, nil
-		}
+		events := generateEvents(10)
 
-		return allEvents[start:stop], nil
-	}).Times(int(2*cfg.ConsumerCount))
+		repo.EXPECT().Lock(gomock.Eq(cfg.ConsumeSize)).DoAndReturn(func(n uint64) ([]model.WaterEvent, error) {
+			time.Sleep(time.Millisecond*100)
+			return events, nil
+		}).AnyTimes()
 
-	sender.EXPECT().Send(gomock.Eq(&dummyEvent)).DoAndReturn(func(event *model.WaterEvent) error {
-		return nil
-	}).Times(eventsCount)
+		sender.EXPECT().Send(gomock.Any()).DoAndReturn(func(event *model.WaterEvent) error {
+			return errors.New("some error")
+		}).AnyTimes()
 
-	// Remove будет вызван в зависимости от количества событий eventsCount полученных из консьюмера
-	// разбитых на пачки по cfg.WorkerBatchSize
-	removeTimes := int(math.Round(float64(eventsCount)/float64(cfg.WorkerBatchSize)))
-	repo.EXPECT().Remove(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
-		return nil
-	}).Times(removeTimes)
+		repo.EXPECT().Unlock(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
+			return nil
+		}).AnyTimes()
 
-	transponder := NewRetranslator(cfg)
-	transponder.Start(ctx)
-	time.Sleep(2*cfg.ConsumeTimeout + 100*time.Millisecond)
-	cancel()
-	transponder.Close()
-}
-
-func TestRetranslatorError(t *testing.T) {
-	t.Parallel()
-
-	ctrl := gomock.NewController(t)
-
-	repo := mocks.NewMockEventRepo(ctrl)
-
-	sender := mocks.NewMockEventSender(ctrl)
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	cfg := Config {
-		ChannelSize: 512,
-		ConsumerCount: 2,
-		ConsumeSize: 10,
-		ConsumeTimeout: time.Second,
-		ProducerCount: 3,
-		WorkerCount: 1,
-		WorkerBatchSize: 5,
-		WorkerBatchTimeout: time.Millisecond*100,
-		Repo: repo,
-		Sender: sender,
-	}
-
-	repo.EXPECT().Lock(gomock.Eq(cfg.ConsumeSize)).DoAndReturn(func(n uint64) ([]model.WaterEvent, error) {
-		return []model.WaterEvent{dummyEvent}, nil
-	}).Times(int(cfg.ConsumerCount))
-
-	sender.EXPECT().Send(gomock.Eq(&dummyEvent)).DoAndReturn(func(event *model.WaterEvent) error {
-		return errors.New("some error")
-	}).Times(int(cfg.ConsumerCount))
-
-	repo.EXPECT().Unlock(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
-		return nil
-	}).AnyTimes()
-
-	transponder := NewRetranslator(cfg)
-	transponder.Start(ctx)
-	time.Sleep(cfg.ConsumeTimeout + 100*time.Millisecond)
-	cancel()
-	transponder.Close()
+		transponder := NewRetranslator(cfg)
+		transponder.Start(ctx)
+		time.Sleep(time.Millisecond)
+		cancel()
+		transponder.Close()
+	})
 }

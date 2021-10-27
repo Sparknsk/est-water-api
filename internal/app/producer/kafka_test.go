@@ -14,114 +14,103 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var dummyEvent = model.WaterEvent{
-	ID: uint64(123),
-	Type: model.Created,
-	Status: model.Processed,
-	Entity: model.NewWater(
-		uint64(123),
-		"name",
-		"model",
-		"manufacturer",
-		"material",
-		100,
-	),
-}
+func TestProducer(t *testing.T) {
 
-func TestProducerSuccess(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	sender := mocks.NewMockEventSender(ctrl)
-	repo := mocks.NewMockEventRepo(ctrl)
-
-	eventsCount := 7
-	eventsCh := make(chan model.WaterEvent, eventsCount-2)
-
-	workerPool := workerpool.New(1)
-
-	sender.EXPECT().Send(gomock.Eq(&dummyEvent)).DoAndReturn(func(event *model.WaterEvent) error {
-		return nil
-	}).Times(eventsCount)
-
-	repo.EXPECT().Remove(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
-		return nil
-	}).AnyTimes()
-
-	cfg := Config{
-		N: uint64(3),
-		Sender: sender,
-		Events: eventsCh,
-		WorkerPool: workerPool,
-		WorkerBatchSize: 5,
-		WorkerBatchTimeout: time.Millisecond*100,
-		Repo: repo,
+	testCases := map[string]struct {
+		eventsCount int
+		producerCount uint64
+	}{
+		"Success: small events count (all will be handled)": {eventsCount: 10, producerCount: 10},
+		"Success: big events count (not all will be handled)": {eventsCount: 100000, producerCount: 0},
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	for testName, testCase := range testCases {
+		testName := testName
+		t.Run(testName, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			sender := mocks.NewMockEventSender(ctrl)
+			repo := mocks.NewMockEventRepo(ctrl)
 
-	kafka := NewKafkaProducer(cfg)
+			ctx, cancel := context.WithCancel(context.Background())
 
-	kafka.Start(ctx)
+			workerPool := workerpool.New(1)
 
-	for i := 0; i < eventsCount; i++ {
-		eventsCh<- dummyEvent
+			eventsCh := make(chan model.WaterEvent, testCase.eventsCount)
+
+			for i := 0; i < testCase.eventsCount; i++ {
+				eventsCh<- model.WaterEvent{}
+			}
+
+			cfg := Config{
+				N: testCase.producerCount,
+				Sender: sender,
+				Events: eventsCh,
+				WorkerPool: workerPool,
+				WorkerBatchSize: 5,
+				WorkerBatchTimeout: time.Millisecond,
+				Repo: repo,
+			}
+
+			sender.EXPECT().Send(gomock.Eq(&model.WaterEvent{})).DoAndReturn(func(event *model.WaterEvent) error {
+				return nil
+			}).AnyTimes()
+
+			repo.EXPECT().Remove(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
+				return nil
+			}).AnyTimes()
+
+			kafka := NewKafkaProducer(cfg)
+			kafka.Start(ctx)
+			time.Sleep(10*time.Millisecond)
+			cancel()
+			kafka.Close()
+
+			// Проверяем, что все события обработаны
+			assert.Equal(t, 0, len(eventsCh))
+		})
 	}
 
-	time.Sleep(100*time.Millisecond)
+	t.Run("Error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		sender := mocks.NewMockEventSender(ctrl)
+		repo := mocks.NewMockEventRepo(ctrl)
 
-	cancel()
+		ctx, cancel := context.WithCancel(context.Background())
 
-	kafka.Close()
+		workerPool := workerpool.New(1)
 
-	// Проверяем, что все события обработаны
-	assert.Equal(t, 0, len(eventsCh))
-}
+		eventsCount := 10
+		eventsCh := make(chan model.WaterEvent, eventsCount)
 
-func TestProducerError(t *testing.T) {
-	ctrl := gomock.NewController(t)
+		for i := 0; i < eventsCount; i++ {
+			eventsCh<- model.WaterEvent{}
+		}
 
-	sender := mocks.NewMockEventSender(ctrl)
-	repo := mocks.NewMockEventRepo(ctrl)
+		cfg := Config{
+			N: uint64(1),
+			Sender: sender,
+			Events: eventsCh,
+			WorkerPool: workerPool,
+			WorkerBatchSize: 5,
+			WorkerBatchTimeout: time.Second,
+			Repo: repo,
+		}
 
-	eventsCount := 7
-	eventsCh := make(chan model.WaterEvent, eventsCount-2)
+		sender.EXPECT().Send(gomock.Eq(&model.WaterEvent{})).DoAndReturn(func(event *model.WaterEvent) error {
+			return errors.New("some error")
+		}).AnyTimes()
 
-	workerPool := workerpool.New(1)
+		repo.EXPECT().Unlock(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
+			return nil
+		}).AnyTimes()
 
-	sender.EXPECT().Send(gomock.Eq(&dummyEvent)).DoAndReturn(func(event *model.WaterEvent) error {
-		return errors.New("some error")
-	}).Times(eventsCount)
+		kafka := NewKafkaProducer(cfg)
+		kafka.Start(ctx)
+		time.Sleep(time.Millisecond)
+		cancel()
+		kafka.Close()
 
-	repo.EXPECT().Unlock(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
-		return nil
-	}).AnyTimes()
-
-	cfg := Config{
-		N: uint64(3),
-		Sender: sender,
-		Events: eventsCh,
-		WorkerPool: workerPool,
-		WorkerBatchSize: 5,
-		WorkerBatchTimeout: time.Millisecond*100,
-		Repo: repo,
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	kafka := NewKafkaProducer(cfg)
-
-	kafka.Start(ctx)
-
-	for i := 0; i < eventsCount; i++ {
-		eventsCh<- dummyEvent
-	}
-
-	time.Sleep(100*time.Millisecond)
-
-	cancel()
-
-	kafka.Close()
-
-	// Проверяем, что все события обработаны
-	assert.Equal(t, 0, len(eventsCh))
+		// Проверяем, что все события обработаны
+		assert.Equal(t, 0, len(eventsCh))
+	})
 }

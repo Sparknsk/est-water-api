@@ -83,7 +83,7 @@ func (r *retranslator) Start(ctx context.Context) {
 
 func (r *retranslator) Close() {
 	r.consumer.Close()
+	close(r.events)
 	r.producer.Close()
 	r.workerPool.StopWait()
-	close(r.events)
 }
