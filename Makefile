@@ -10,7 +10,6 @@ run:
 
 .PHONY: test
 test:
-	make mocks
 	go clean -testcache
 	go test ./internal/app/retranslator -v
 	go test ./internal/app/consumer -v
