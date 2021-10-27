@@ -12,30 +12,29 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var dummyEvent = model.WaterEvent{
-	ID: uint64(123),
-	Type: model.Created,
-	Status: model.Processed,
-	Entity: model.NewWater(
-		uint64(123),
-		"name",
-		"model",
-		"manufacturer",
-		"material",
-		100,
-	),
-}
-
 func TestConsumerSuccess(t *testing.T) {
 	ctrl := gomock.NewController(t)
-
 	repo := mocks.NewMockEventRepo(ctrl)
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	batchSize := uint64(1)
-
 	consumerCount := 5
-
 	eventsCh := make(chan model.WaterEvent, consumerCount-2)
+
+	dummyEvent := model.WaterEvent{
+		ID: uint64(123),
+		Type: model.Created,
+		Status: model.Processed,
+		Entity: model.NewWater(
+			uint64(123),
+			"name",
+			"model",
+			"manufacturer",
+			"material",
+			100,
+		),
+	}
 
 	repo.EXPECT().Lock(gomock.Eq(batchSize)).DoAndReturn(func(n uint64) ([]model.WaterEvent, error) {
 		return []model.WaterEvent{dummyEvent}, nil
@@ -46,10 +45,8 @@ func TestConsumerSuccess(t *testing.T) {
 		Events: eventsCh,
 		Repo: repo,
 		BatchSize: batchSize,
-		Timeout: time.Second,
+		Timeout: time.Millisecond*100,
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
 
 	db := NewDbConsumer(cfg)
 
