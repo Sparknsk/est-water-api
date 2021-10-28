@@ -96,6 +96,7 @@ func (p *producer) Start(ctx context.Context) {
 					ticker.Stop()
 					p.workerBatchSendUpdate(&workerBatchUpdate)
 					p.workerBatchSendClean(&workerBatchClean)
+					p.clearUnsentEvents()
 					return
 				}
 			}
@@ -105,7 +106,6 @@ func (p *producer) Start(ctx context.Context) {
 
 func (p *producer) Close() {
 	p.wg.Wait()
-	p.clearUnsentEvents()
 }
 
 func (p *producer) workerBatchSendUpdate(eventIDs *[]uint64) {
@@ -143,16 +143,13 @@ func (p *producer) clearUnsentEvents() {
 
 	if eventsLength > 0 {
 		eventIDs := make([]uint64, 0, p.workerBatchSize)
-		eventsCounter := 1
-		for i := 0; i < eventsLength; i++ {
-			event := <-p.events
-
-			eventsCounter++
+		for event := range p.events {
 			eventIDs = append(eventIDs, event.ID)
 
-			if len(eventIDs) == int(p.workerBatchSize) || eventsCounter == eventsLength {
+			if len(eventIDs) == int(p.workerBatchSize) {
 				p.workerBatchSendClean(&eventIDs)
 			}
 		}
+		p.workerBatchSendClean(&eventIDs)
 	}
 }

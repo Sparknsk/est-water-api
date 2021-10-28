@@ -20,8 +20,9 @@ func TestProducer(t *testing.T) {
 		eventsCount int
 		producerCount uint64
 	}{
-		"Success: small events count (all will be handled)": {eventsCount: 10, producerCount: 10},
-		"Success: big events count (not all will be handled)": {eventsCount: 100000, producerCount: 0},
+		"Success: small events count (all will be handled - batch length)": {eventsCount: 200, producerCount: 2},
+		"Success: small events count (all will be handled - batch timeout)": {eventsCount: 50, producerCount: 10},
+		"Success: big events count (not all will be handled)": {eventsCount: 10000, producerCount: 1},
 	}
 
 	for testName, testCase := range testCases {
@@ -40,13 +41,14 @@ func TestProducer(t *testing.T) {
 			for i := 0; i < testCase.eventsCount; i++ {
 				eventsCh<- model.WaterEvent{}
 			}
+			close(eventsCh)
 
 			cfg := Config{
 				N: testCase.producerCount,
 				Sender: sender,
 				Events: eventsCh,
 				WorkerPool: workerPool,
-				WorkerBatchSize: 5,
+				WorkerBatchSize: 50,
 				WorkerBatchTimeout: time.Millisecond,
 				Repo: repo,
 			}
@@ -85,6 +87,7 @@ func TestProducer(t *testing.T) {
 		for i := 0; i < eventsCount; i++ {
 			eventsCh<- model.WaterEvent{}
 		}
+		close(eventsCh)
 
 		cfg := Config{
 			N: uint64(1),

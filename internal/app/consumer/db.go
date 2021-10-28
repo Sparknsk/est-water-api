@@ -65,12 +65,14 @@ func (c *consumer) Start(ctx context.Context) {
 						log.Printf("EventRepo Lock events error: %v\n", err)
 						continue
 					}
+
 					for _, event := range events {
 						if event.Type == model.Created {
 							c.events <- event
 						}
 					}
 				case <-ctx.Done():
+					ticker.Stop()
 					return
 				}
 			}
