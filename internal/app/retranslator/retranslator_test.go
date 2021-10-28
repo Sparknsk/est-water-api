@@ -43,15 +43,17 @@ func TestRetranslator(t *testing.T) {
 		producerCount uint64
 	}{
 		"Success: small events count": {eventsCount: 20, consumerCount: 2, producerCount: 2},
-		"Success: big events count (consumers > producers)": {eventsCount: 207, consumerCount: 15, producerCount: 5},
-		"Success: big events count (consumers < producers)": {eventsCount: 207, consumerCount: 5, producerCount: 15},
-		"Success: huge events count (consumers < producers)": {eventsCount: 2000, consumerCount: 50, producerCount: 150},
-		"Success: huge events count (consumers > producers)": {eventsCount: 2000, consumerCount: 150, producerCount: 50},
+		"Success: big events count (consumers > producers)": {eventsCount: 2007, consumerCount: 15, producerCount: 5},
+		"Success: big events count (consumers < producers)": {eventsCount: 2007, consumerCount: 5, producerCount: 15},
+		"Success: huge events count (consumers < producers)": {eventsCount: 201234, consumerCount: 50, producerCount: 150},
+		"Success: huge events count (consumers > producers)": {eventsCount: 201234, consumerCount: 150, producerCount: 50},
 	}
 
 	for testName, testCase := range testCases {
 		testName := testName
 		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			repo := mocks.NewMockEventRepo(ctrl)
 			sender := mocks.NewMockEventSender(ctrl)
@@ -119,6 +121,8 @@ func TestRetranslator(t *testing.T) {
 	}
 
 	t.Run("Error", func(t *testing.T) {
+		t.Parallel()
+
 		ctrl := gomock.NewController(t)
 		repo := mocks.NewMockEventRepo(ctrl)
 		sender := mocks.NewMockEventSender(ctrl)
