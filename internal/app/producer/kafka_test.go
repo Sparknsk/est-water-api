@@ -14,6 +14,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func setup(t *testing.T, eventsCount int) (
+	*mocks.MockEventRepo,
+	*mocks.MockEventSender,
+	*workerpool.WorkerPool,
+	context.Context,
+	context.CancelFunc,
+	chan model.WaterEvent,
+) {
+	ctrl := gomock.NewController(t)
+	repo := mocks.NewMockEventRepo(ctrl)
+	sender := mocks.NewMockEventSender(ctrl)
+	workerPool := workerpool.New(1)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	eventsCh := make(chan model.WaterEvent, eventsCount)
+
+	for i := 0; i < eventsCount; i++ {
+		eventsCh<- model.WaterEvent{}
+	}
+	close(eventsCh)
+
+	return repo, sender, workerPool, ctx, cancel, eventsCh
+}
+
 func TestProducer(t *testing.T) {
 
 	testCases := map[string]struct {
@@ -21,27 +45,16 @@ func TestProducer(t *testing.T) {
 		producerCount uint64
 	}{
 		"Success: small events count (all will be handled - batch length)": {eventsCount: 200, producerCount: 2},
-		"Success: small events count (all will be handled - batch timeout)": {eventsCount: 50, producerCount: 10},
-		"Success: big events count (not all will be handled)": {eventsCount: 10000, producerCount: 1},
+		"Success: small events count (all will be handled - batch timeout)": {eventsCount: 50, producerCount: 30},
+		"Success: big events count": {eventsCount: 10000, producerCount: 1},
 	}
 
 	for testName, testCase := range testCases {
 		testName := testName
 		t.Run(testName, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			sender := mocks.NewMockEventSender(ctrl)
-			repo := mocks.NewMockEventRepo(ctrl)
+			t.Parallel()
 
-			ctx, cancel := context.WithCancel(context.Background())
-
-			workerPool := workerpool.New(1)
-
-			eventsCh := make(chan model.WaterEvent, testCase.eventsCount)
-
-			for i := 0; i < testCase.eventsCount; i++ {
-				eventsCh<- model.WaterEvent{}
-			}
-			close(eventsCh)
+			repo, sender, workerPool, ctx, cancel, eventsCh := setup(t, testCase.eventsCount)
 
 			cfg := Config{
 				N: testCase.producerCount,
@@ -63,7 +76,7 @@ func TestProducer(t *testing.T) {
 
 			kafka := NewKafkaProducer(cfg)
 			kafka.Start(ctx)
-			time.Sleep(10*time.Millisecond)
+			time.Sleep(100*time.Millisecond)
 			cancel()
 			kafka.Close()
 
@@ -73,21 +86,9 @@ func TestProducer(t *testing.T) {
 	}
 
 	t.Run("Error", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		sender := mocks.NewMockEventSender(ctrl)
-		repo := mocks.NewMockEventRepo(ctrl)
+		t.Parallel()
 
-		ctx, cancel := context.WithCancel(context.Background())
-
-		workerPool := workerpool.New(1)
-
-		eventsCount := 10
-		eventsCh := make(chan model.WaterEvent, eventsCount)
-
-		for i := 0; i < eventsCount; i++ {
-			eventsCh<- model.WaterEvent{}
-		}
-		close(eventsCh)
+		repo, sender, workerPool, ctx, cancel, eventsCh := setup(t, 10)
 
 		cfg := Config{
 			N: uint64(1),
