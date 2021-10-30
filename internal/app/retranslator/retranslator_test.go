@@ -13,7 +13,18 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-func generateEvents(count int) []model.WaterEvent {
+func setup(t *testing.T, eventsCount int) (
+	*mocks.MockEventRepo,
+	*mocks.MockEventSender,
+	context.Context,
+	context.CancelFunc,
+	[]model.WaterEvent,
+) {
+	ctrl := gomock.NewController(t)
+	repo := mocks.NewMockEventRepo(ctrl)
+	sender := mocks.NewMockEventSender(ctrl)
+	ctx, cancel := context.WithCancel(context.Background())
+
 	dummyEvent := model.WaterEvent{
 		ID: uint64(1),
 		Type: model.Created,
@@ -27,12 +38,12 @@ func generateEvents(count int) []model.WaterEvent {
 			100,
 		),
 	}
-
-	events := make([]model.WaterEvent, 0, count)
-	for i := 0; i < count; i++ {
+	events := make([]model.WaterEvent, 0, eventsCount)
+	for i := 0; i < eventsCount; i++ {
 		events = append(events, dummyEvent)
 	}
-	return events
+
+	return repo, sender, ctx, cancel, events
 }
 
 func TestRetranslator(t *testing.T) {
@@ -45,8 +56,8 @@ func TestRetranslator(t *testing.T) {
 		"Success: small events count": {eventsCount: 20, consumerCount: 2, producerCount: 2},
 		"Success: big events count (consumers > producers)": {eventsCount: 2007, consumerCount: 15, producerCount: 5},
 		"Success: big events count (consumers < producers)": {eventsCount: 2007, consumerCount: 5, producerCount: 15},
-		"Success: huge events count (consumers < producers)": {eventsCount: 201234, consumerCount: 50, producerCount: 150},
-		"Success: huge events count (consumers > producers)": {eventsCount: 201234, consumerCount: 150, producerCount: 50},
+		"Success: huge events count (consumers < producers)": {eventsCount: 20234, consumerCount: 50, producerCount: 150},
+		"Success: huge events count (consumers > producers)": {eventsCount: 20234, consumerCount: 150, producerCount: 50},
 	}
 
 	for testName, testCase := range testCases {
@@ -54,13 +65,7 @@ func TestRetranslator(t *testing.T) {
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
 
-			ctrl := gomock.NewController(t)
-			repo := mocks.NewMockEventRepo(ctrl)
-			sender := mocks.NewMockEventSender(ctrl)
-
-			ctx, cancel := context.WithCancel(context.Background())
-
-			events := generateEvents(testCase.eventsCount)
+			repo, sender, ctx, cancel, events := setup(t, testCase.eventsCount)
 
 			cfg := Config {
 				ChannelSize: 512,
@@ -123,11 +128,7 @@ func TestRetranslator(t *testing.T) {
 	t.Run("Error", func(t *testing.T) {
 		t.Parallel()
 
-		ctrl := gomock.NewController(t)
-		repo := mocks.NewMockEventRepo(ctrl)
-		sender := mocks.NewMockEventSender(ctrl)
-
-		ctx, cancel := context.WithCancel(context.Background())
+		repo, sender, ctx, cancel, events := setup(t, 10)
 
 		cfg := Config {
 			ChannelSize: 512,
@@ -141,8 +142,6 @@ func TestRetranslator(t *testing.T) {
 			Repo: repo,
 			Sender: sender,
 		}
-
-		events := generateEvents(10)
 
 		repo.EXPECT().Lock(gomock.Eq(cfg.ConsumeSize)).DoAndReturn(func(n uint64) ([]model.WaterEvent, error) {
 			time.Sleep(time.Millisecond*100)
