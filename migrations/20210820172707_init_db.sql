@@ -1,8 +1,12 @@
 -- +goose Up
-CREATE TABLE template (
+CREATE TABLE water (
   id BIGSERIAL PRIMARY KEY,
-  foo BIGINT NOT NULL
+  name VARCHAR (100) NOT NULL,
+  model VARCHAR (100) NOT NULL,
+  manufacturer VARCHAR (100) NOT NULL,
+  material VARCHAR (100) NOT NULL,
+  speed INTEGER NOT NULL
 );
 
 -- +goose Down
-DROP TABLE template;
+DROP TABLE water;

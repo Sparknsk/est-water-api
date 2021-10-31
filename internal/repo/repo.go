@@ -5,12 +5,14 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"github.com/ozonmp/omp-template-api/internal/model"
+	"github.com/ozonmp/est-water-api/internal/model"
 )
 
-// Repo is DAO for Template
 type Repo interface {
-	DescribeTemplate(ctx context.Context, templateID uint64) (*model.Template, error)
+	DescribeWater(ctx context.Context, waterID uint64) (*model.Water, error)
+	CreateWater(ctx context.Context, water *model.Water) error
+	ListWaters(ctx context.Context) ([]model.Water, error)
+	RemoveWater(ctx context.Context, waterID uint64) error
 }
 
 type repo struct {
@@ -23,6 +25,18 @@ func NewRepo(db *sqlx.DB, batchSize uint) Repo {
 	return &repo{db: db, batchSize: batchSize}
 }
 
-func (r *repo) DescribeTemplate(ctx context.Context, templateID uint64) (*model.Template, error) {
+func (r *repo) DescribeWater(ctx context.Context, waterID uint64) (*model.Water, error) {
 	return nil, nil
+}
+
+func (r *repo) CreateWater(ctx context.Context, water *model.Water) error {
+	return nil
+}
+
+func (r *repo) ListWaters(ctx context.Context) ([]model.Water, error) {
+	return []model.Water{}, nil
+}
+
+func (r *repo) RemoveWater(ctx context.Context, waterID uint64) error {
+	return nil
 }

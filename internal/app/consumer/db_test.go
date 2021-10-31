@@ -32,7 +32,7 @@ func TestConsumerSuccess(t *testing.T) {
 			"model",
 			"manufacturer",
 			"material",
-			100,
+			uint32(100),
 		),
 	}
 

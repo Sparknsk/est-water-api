@@ -1,4 +1,4 @@
-module github.com/ozonmp/omp-template-api/pkg/omp-template-api
+module github.com/ozonmp/est-water-api/pkg/est-water-api
 
 go 1.17
 
