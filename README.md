@@ -51,11 +51,12 @@ Rpc failed with status code 5, error message: water not found
 
 It reads protobuf service definitions and generates a reverse-proxy server which translates a RESTful HTTP API into gRPC
 
+- http://localhost:8083
 - http://localhost:8080/api
 
 ```sh
 [I] ➜ curl -s -X 'POST' \
-  'http://localhost:8080/api/v1/waters' \
+  'http://localhost:8083/v1/waters' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -129,7 +130,7 @@ $ pgcli "postgresql://docker:docker@localhost:5432/est_water_api"
 - http://localhost:8080/pypi
 
 ```shell
-pip3 install --index-url http://localhost:8084/simple/ grpc-est-water-api
+$ pip3 install --index-url http://localhost:8084/simple/ grpc-est-water-api
 ```
 
 ```shell
