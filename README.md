@@ -29,6 +29,7 @@ $ docker-compose up -d
 The Swagger UI is an open source project to visually render documentation for an API defined with the OpenAPI (Swagger) Specification
 
 - http://localhost:8081
+- http://localhost:8080/swagger
 
 ### Grafana:
 
@@ -50,11 +51,11 @@ Rpc failed with status code 5, error message: water not found
 
 It reads protobuf service definitions and generates a reverse-proxy server which translates a RESTful HTTP API into gRPC
 
-- http://localhost:8080
+- http://localhost:8080/api
 
 ```sh
 [I] ➜ curl -s -X 'POST' \
-  'http://localhost:8080/v1/waters' \
+  'http://localhost:8080/api/v1/waters' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -123,6 +124,13 @@ $ pgcli "postgresql://docker:docker@localhost:5432/est_water_api"
 ```
 
 ### Python client
+
+- http://localhost:8084
+- http://localhost:8080/pypi
+
+```shell
+pip3 install --index-url http://localhost:8084/simple/ grpc-est-water-api
+```
 
 ```shell
 $ python -m venv .venv

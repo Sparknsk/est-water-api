@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: grpc-est-water-api
+Version: 1.0.0
+Summary: GRPC python client for est-water
+Home-page: https://github.com/ozonmp/est-water
+Author: sparknsk
+Author-email: sparknsk@gmail.com
+License: UNKNOWN
+Platform: UNKNOWN
+Requires-Python: >=3.5
+
+UNKNOWN
+

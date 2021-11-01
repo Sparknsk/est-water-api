@@ -12,6 +12,7 @@ services:
     links:
       - swagger-ui
       - est-water-api
+      - pypi-server
 
   est-water-api:
     build:
@@ -111,7 +112,7 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    command: sh -c "((sleep 15 && kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic templates)&) && /etc/confluent/docker/run"
+    command: sh -c "((sleep 15 && kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic waters)&) && /etc/confluent/docker/run"
     networks:
       - estnw
 
@@ -246,6 +247,17 @@ services:
       # GELF UDP
       - 12201:12201/udp
     restart: always
+
+  pypi-server:
+    image: pypiserver/pypiserver:latest
+    ports:
+      - 8084:8080
+    volumes:
+      - ./pypkg:/data/packages
+    command: -P . -a . /data/packages
+    restart: always
+    networks:
+      - estnw
 
 volumes:
   pgdata:
