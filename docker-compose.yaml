@@ -14,6 +14,21 @@ services:
       - est-water-api
       - pypi-server
 
+  #traefik:
+  #  image: traefik:latest
+  #  restart: unless-stopped
+  #  ports:
+  #    - 8080:80
+  #    - 8888:8080
+  #  command:
+  #    - "--api.insecure=true"
+  #    - "--providers.docker=true"
+  #    - "--providers.docker.exposedbydefault=false"
+  #  volumes:
+  #    - /var/run/docker.sock:/var/run/docker.sock
+  #  networks:
+  #    - estnw
+
   est-water-api:
     build:
       context: .
@@ -47,6 +62,21 @@ services:
     volumes:
       - ./migrations:/root/migrations
       - ./config.yml:/root/config.yml
+    #labels:
+    #  - "traefik.enable=true"
+    #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.scheme=http"
+    #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.hostname=localhost"
+    #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.port=8000"
+    #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.path=/live"
+    #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.interval=60s"
+    #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.timeout=10s"
+    #  - "traefik.http.routers.est-water-api.rule=PathPrefix(`/api`)"
+    #  - "traefik.http.routers.est-water-api.middlewares=add-slash,strip-prefix-api"
+    #  - "traefik.http.middlewares.add-slash.redirectregex.regex=^(https?://[^/]+/[a-z0-9_]+)$$"
+    #  - "traefik.http.middlewares.add-slash.redirectregex.replacement=$${1}/"
+    #  - "traefik.http.middlewares.add-slash.redirectregex.permanent=true"
+    #  - "traefik.http.middlewares.strip-prefix-api.stripprefix.prefixes=/api"
+    #  - "traefik.http.services.est-water-api.loadbalancer.server.port=8080"
 
   postgres:
     image: postgres:latest
@@ -143,6 +173,15 @@ services:
       - est-water-api
     networks:
       - estnw
+    #labels:
+    #  - "traefik.enable=true"
+    #  - "traefik.http.routers.swagger-ui.rule=PathPrefix(`/swagger`)"
+    #  - "traefik.http.routers.swagger-ui.middlewares=add-slash,strip-prefix-swagger"
+    #  - "traefik.http.middlewares.add-slash.redirectregex.regex=^(https?://[^/]+/[a-z0-9_]+)$$"
+    #  - "traefik.http.middlewares.add-slash.redirectregex.replacement=$${1}/"
+    #  - "traefik.http.middlewares.add-slash.redirectregex.permanent=true"
+    #  - "traefik.http.middlewares.strip-prefix-swagger.stripprefix.prefixes=/swagger"
+    #  - "traefik.http.services.swagger-ui.loadbalancer.server.port=8080"
 
   jaeger:
     image: jaegertracing/all-in-one
