@@ -121,7 +121,6 @@ func TestRetranslator(t *testing.T) {
 			transponder.Start(ctx)
 			<-eventsDone
 			cancel()
-			transponder.Close()
 		})
 	}
 
@@ -160,6 +159,5 @@ func TestRetranslator(t *testing.T) {
 		transponder.Start(ctx)
 		time.Sleep(time.Millisecond)
 		cancel()
-		transponder.Close()
 	})
 }

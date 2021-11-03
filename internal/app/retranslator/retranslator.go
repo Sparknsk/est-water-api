@@ -79,6 +79,11 @@ func NewRetranslator(cfg Config) Retranslator {
 func (r *retranslator) Start(ctx context.Context) {
 	r.consumer.Start(ctx)
 	r.producer.Start(ctx)
+
+	go func() {
+		<-ctx.Done()
+		r.Close()
+	}()
 }
 
 func (r *retranslator) Close() {
