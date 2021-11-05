@@ -18,6 +18,7 @@ WORKDIR /root/
 COPY --from=builder /home/${GITHUB_PATH}/bin/grpc-server .
 COPY --from=builder /home/${GITHUB_PATH}/config.yml .
 COPY --from=builder /home/${GITHUB_PATH}/migrations/ ./migrations
+COPY --from=builder /home/${GITHUB_PATH}/swagger/ ./swagger
 
 RUN chown root:root grpc-server
 

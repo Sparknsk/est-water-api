@@ -60,6 +60,7 @@ services:
       retries: 3
       start_period: 20s
     volumes:
+      - swaggerdata:/root/swagger
       - ./migrations:/root/migrations
       - ./config.yml:/root/config.yml
     #labels:
@@ -166,7 +167,7 @@ services:
       - 8081:8080
     restart: always
     volumes:
-      - ./swagger:/swagger
+      - swaggerdata:/swagger
     environment:
       SWAGGER_JSON: /swagger/ozonmp/est_water_api/v1/est_water_api.swagger.json
     depends_on:
@@ -299,6 +300,8 @@ services:
       - estnw
 
 volumes:
+  swaggerdata:
+    driver: local
   pgdata:
     driver: local
   esdata:
