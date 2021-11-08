@@ -2,7 +2,6 @@ package repo
 
 import (
 	"context"
-	
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 
@@ -39,16 +38,23 @@ func (r *repo) DescribeWater(ctx context.Context, waterID uint64) (*model.Water,
 		return nil, err
 	}
 
-	var res []model.Water
-	err = r.db.SelectContext(ctx, &res, queryText, queryArgs...)
+	rows, err := r.db.QueryxContext(ctx, queryText, queryArgs...)
 	if err != nil {
 		return nil, err
 	}
 
-	if res == nil {
+	var water model.Water
+	for rows.Next() {
+		if err = rows.StructScan(&water); err != nil {
+			return nil, err
+		}
+	}
+
+	if water.Id == 0 {
 		return nil, nil
 	}
-	return &res[0], nil
+
+	return &water, nil
 }
 
 func (r *repo) CreateWater(ctx context.Context, water *model.Water) error {
@@ -80,7 +86,18 @@ func (r *repo) ListWaters(ctx context.Context, limit uint64, offset uint64) ([]m
 	}
 
 	var res []model.Water
-	err = r.db.SelectContext(ctx, &res, queryText, queryArgs...)
+	rows, err := r.db.QueryxContext(ctx, queryText, queryArgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	var water model.Water
+	for rows.Next() {
+		if err = rows.StructScan(&water); err != nil {
+			return nil, err
+		}
+		res = append(res, water)
+	}
 
 	return res, err
 }

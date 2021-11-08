@@ -1,37 +1,24 @@
 package model
 
-import "fmt"
-
-const (
-	Created EventType = iota
-	Updated
-	Removed
-
-	Deferred EventStatus = iota
-	Processed
+import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"time"
 )
 
-type EventType uint8
-
-type EventStatus uint8
-
-type WaterEvent struct {
-	ID     uint64
-	Type   EventType
-	Status EventStatus
-	Entity *Water
-}
-
 type Water struct {
-	Id uint64
-	Name string
-	Model string
-	Manufacturer string
-	Material string
-	Speed uint32
+	Id uint64 `db:"id" json:"id"`
+	Name string `db:"name" json:"name"`
+	Model string `db:"model" json:"model"`
+	Manufacturer string `db:"manufacturer" json:"manufacturer"`
+	Material string `db:"material" json:"material"`
+	Speed uint32 `db:"speed" json:"speed"`
+	CreatedAt *time.Time `db:"created_at" json:"created_at"`
 }
 
-func NewWater(id uint64, name string, model string, manufacturer string, material string, speed uint32) *Water {
+func NewWater(id uint64, name string, model string, manufacturer string, material string, speed uint32, createdAt *time.Time) *Water {
 	return &Water{
 		id,
 		name,
@@ -39,9 +26,36 @@ func NewWater(id uint64, name string, model string, manufacturer string, materia
 		manufacturer,
 		material,
 		speed,
+		createdAt,
 	}
 }
 
-func (a Water) String() string {
-	return fmt.Sprintf("id=%d, name=%s, model=%s, manufacturer=%s, material=%s, speed=%d", a.Id, a.Name, a.Model, a.Manufacturer, a.Material, a.Speed)
+func (w Water) String() string {
+	return fmt.Sprintf("id=%d, name=%s, model=%s, manufacturer=%s, material=%s, speed=%d, created_at=%s", w.Id, w.Name, w.Model, w.Manufacturer, w.Material, w.Speed, w.CreatedAt)
+}
+
+func (w Water) Value() (driver.Value, error) {
+	return json.Marshal(w)
+}
+
+func (w *Water) Scan(src interface{}) (err error) {
+	if src == nil {
+		return nil
+	}
+	var water Water
+	switch src.(type) {
+	case string:
+		err = json.Unmarshal([]byte(src.(string)), &water)
+	case []byte:
+		err = json.Unmarshal(src.([]byte), &water)
+	default:
+		return errors.New("incompatible type")
+	}
+
+	if err != nil {
+		return err
+	}
+
+	*w = water
+	return nil
 }
