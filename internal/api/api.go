@@ -2,67 +2,46 @@ package api
 
 import (
 	"context"
+	"github.com/ozonmp/est-water-api/internal/model"
+	"github.com/ozonmp/est-water-api/internal/repo"
+	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
-	"github.com/ozonmp/omp-template-api/internal/repo"
-
-	pb "github.com/ozonmp/omp-template-api/pkg/omp-template-api"
 )
 
 var (
-	totalTemplateNotFound = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "omp_template_api_template_not_found_total",
-		Help: "Total number of templates that were not found",
+	totalWaterNotFound = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "est_water_api_water_not_found_total",
+		Help: "Total number of waters that were not found",
 	})
 )
 
-type templateAPI struct {
-	pb.UnimplementedOmpTemplateApiServiceServer
+//go:generate mockgen -destination=../mocks/api_repo_mock.go -package=mocks github.com/ozonmp/est-water-api/internal/repo Repo
+type Repo interface {
+	DescribeWater(ctx context.Context, waterID uint64) (*model.Water, error)
+	CreateWater(ctx context.Context, water *model.Water) error
+	ListWaters(ctx context.Context) ([]model.Water, error)
+	RemoveWater(ctx context.Context, waterID uint64) error
+}
+
+type waterAPI struct {
+	pb.UnimplementedEstWaterApiServiceServer
 	repo repo.Repo
 }
 
-// NewTemplateAPI returns api of omp-template-api service
-func NewTemplateAPI(r repo.Repo) pb.OmpTemplateApiServiceServer {
-	return &templateAPI{repo: r}
+// NewWaterAPI returns api of est-water-api service
+func NewWaterAPI(r repo.Repo) pb.EstWaterApiServiceServer {
+	return &waterAPI{repo: r}
 }
 
-func (o *templateAPI) DescribeTemplateV1(
-	ctx context.Context,
-	req *pb.DescribeTemplateV1Request,
-) (*pb.DescribeTemplateV1Response, error) {
-
-	if err := req.Validate(); err != nil {
-		log.Error().Err(err).Msg("DescribeTemplateV1 - invalid argument")
-
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+func modelWaterToProtobufWater(water *model.Water) *pb.Water {
+	return &pb.Water{
+		Id: water.Id,
+		Name: water.Name,
+		Model: water.Model,
+		Manufacturer: water.Manufacturer,
+		Material: water.Material,
+		Speed: water.Speed,
 	}
-
-	template, err := o.repo.DescribeTemplate(ctx, req.TemplateId)
-	if err != nil {
-		log.Error().Err(err).Msg("DescribeTemplateV1 -- failed")
-
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-
-	if template == nil {
-		log.Debug().Uint64("templateId", req.TemplateId).Msg("template not found")
-		totalTemplateNotFound.Inc()
-
-		return nil, status.Error(codes.NotFound, "template not found")
-	}
-
-	log.Debug().Msg("DescribeTemplateV1 - success")
-
-	return &pb.DescribeTemplateV1Response{
-		Value: &pb.Template{
-			Id:  template.ID,
-			Foo: template.Foo,
-		},
-	}, nil
 }

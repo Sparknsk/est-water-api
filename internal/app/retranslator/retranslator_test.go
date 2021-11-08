@@ -35,7 +35,7 @@ func setup(t *testing.T, eventsCount int) (
 			"model",
 			"manufacturer",
 			"material",
-			100,
+			uint32(100),
 		),
 	}
 	events := make([]model.WaterEvent, 0, eventsCount)
@@ -121,7 +121,6 @@ func TestRetranslator(t *testing.T) {
 			transponder.Start(ctx)
 			<-eventsDone
 			cancel()
-			transponder.Close()
 		})
 	}
 
@@ -160,6 +159,5 @@ func TestRetranslator(t *testing.T) {
 		transponder.Start(ctx)
 		time.Sleep(time.Millisecond)
 		cancel()
-		transponder.Close()
 	})
 }

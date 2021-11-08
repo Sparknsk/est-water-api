@@ -1,6 +1,6 @@
 # Builder
 
-ARG GITHUB_PATH=github.com/ozonmp/omp-template-api
+ARG GITHUB_PATH=github.com/ozonmp/est-water-api
 
 FROM golang:1.16-alpine AS builder
 RUN apk add --update make git protoc protobuf protobuf-dev curl
@@ -18,6 +18,7 @@ WORKDIR /root/
 COPY --from=builder /home/${GITHUB_PATH}/bin/grpc-server .
 COPY --from=builder /home/${GITHUB_PATH}/config.yml .
 COPY --from=builder /home/${GITHUB_PATH}/migrations/ ./migrations
+COPY --from=builder /home/${GITHUB_PATH}/swagger/ ./swagger
 
 RUN chown root:root grpc-server
 

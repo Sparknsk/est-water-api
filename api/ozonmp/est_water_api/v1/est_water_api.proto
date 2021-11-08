@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package ozonmp.est_water_api.v1;
+
+import "validate/validate.proto";
+import "google/api/annotations.proto";
+
+option go_package = "github.com/ozonmp/est-water-api/pkg/est-water-api;est_water_api";
+
+// EstWaterApiService - Service for working with water autotransport
+service EstWaterApiService {
+  // CreateWaterV1 - Create a water autotransport
+  rpc CreateWaterV1(CreateWaterV1Request) returns (CreateWaterV1Response) {
+    option (google.api.http) = {
+      post: "/v1/waters"
+      body: "*"
+    };
+  }
+  // DescribeWaterV1 - Describe a water autotransport
+  rpc DescribeWaterV1(DescribeWaterV1Request) returns (DescribeWaterV1Response) {
+    option (google.api.http) = {
+      get: "/v1/waters/{water_id}"
+    };
+  }
+  // ListWatersV1 - List of water autotransports
+  rpc ListWatersV1(ListWatersV1Request) returns (ListWatersV1Response) {
+    option (google.api.http) = {
+      get: "/v1/waters"
+    };
+  }
+  // RemoveWaterV1 - Remove a water autotransport
+  rpc RemoveWaterV1(RemoveWaterV1Request) returns (RemoveWaterV1Response) {
+    option (google.api.http) = {
+      delete: "/v1/waters/{water_id}"
+    };
+  }
+}
+
+message Water {
+  uint64 id  = 1;
+  string name = 2;
+  string model = 3;
+  string manufacturer = 4;
+  string material = 5;
+  uint32 speed = 6;
+}
+
+message CreateWaterV1Request {
+  string name = 1 [(validate.rules).string = {min_len: 3, max_len: 50}];
+  string model = 2 [(validate.rules).string = {min_len: 3, max_len: 50}];
+  string manufacturer = 3 [(validate.rules).string = {min_len: 3, max_len: 50}];
+  string material = 4 [(validate.rules).string = {min_len: 3, max_len: 50}];
+  uint32 speed = 5 [(validate.rules).uint32 = {gt: 0, lte: 1000}];
+}
+
+message CreateWaterV1Response {
+  Water water = 1;
+}
+
+message DescribeWaterV1Request {
+  uint64 water_id = 1 [(validate.rules).uint64.gt = 0];
+}
+
+message DescribeWaterV1Response {
+  Water water = 1;
+}
+
+message ListWatersV1Request {}
+
+message ListWatersV1Response {
+  repeated Water waters = 1;
+}
+
+message RemoveWaterV1Request {
+  uint64 water_id = 1 [(validate.rules).uint64.gt = 0];
+}
+
+message RemoveWaterV1Response {}

@@ -1,7 +1,35 @@
 version: "3.9"
 
 services:
-  omp-template-api:
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - 8080:8080
+    networks:
+      - estnw
+    links:
+      - swagger-ui
+      - est-water-api
+      - pypi-server
+
+  #traefik:
+  #  image: traefik:latest
+  #  restart: unless-stopped
+  #  ports:
+  #    - 8080:80
+  #    - 8888:8080
+  #  command:
+  #    - "--api.insecure=true"
+  #    - "--providers.docker=true"
+  #    - "--providers.docker.exposedbydefault=false"
+  #  volumes:
+  #    - /var/run/docker.sock:/var/run/docker.sock
+  #  networks:
+  #    - estnw
+
+  est-water-api:
     build:
       context: .
       dockerfile: Dockerfile
@@ -10,9 +38,9 @@ services:
       driver: 'gelf'
       options:
         gelf-address: 'udp://localhost:12201'
-        tag: omp-template-api
+        tag: est-water-api
     networks:
-      - ompnw
+      - estnw
     depends_on:
       - postgres
       - kafka
@@ -20,7 +48,7 @@ services:
       - postgres
       - kafka
     ports:
-      - 8080:8080 # REST
+      - 8083:8080 # REST
       - 8082:8082 # gRPC
       - 9100:9100 # Metrics prometheus
       - 8000:8000 # Status prometheus
@@ -32,8 +60,24 @@ services:
       retries: 3
       start_period: 20s
     volumes:
+      - swaggerdata:/root/swagger
       - ./migrations:/root/migrations
       - ./config.yml:/root/config.yml
+    #labels:
+    #  - "traefik.enable=true"
+    #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.scheme=http"
+    #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.hostname=localhost"
+    #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.port=8000"
+    #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.path=/live"
+    #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.interval=60s"
+    #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.timeout=10s"
+    #  - "traefik.http.routers.est-water-api.rule=PathPrefix(`/api`)"
+    #  - "traefik.http.routers.est-water-api.middlewares=add-slash,strip-prefix-api"
+    #  - "traefik.http.middlewares.add-slash.redirectregex.regex=^(https?://[^/]+/[a-z0-9_]+)$$"
+    #  - "traefik.http.middlewares.add-slash.redirectregex.replacement=$${1}/"
+    #  - "traefik.http.middlewares.add-slash.redirectregex.permanent=true"
+    #  - "traefik.http.middlewares.strip-prefix-api.stripprefix.prefixes=/api"
+    #  - "traefik.http.services.est-water-api.loadbalancer.server.port=8080"
 
   postgres:
     image: postgres:latest
@@ -53,11 +97,11 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: omp_template_api
+      POSTGRES_DB: est_water_api
       APP_DB_USER: docker
       APP_DB_PASS: docker
     networks:
-      - ompnw
+      - estnw
     volumes:
       # - pgdata:/var/lib/postgresql/data
       - ./scripts/init-database.sh:/docker-entrypoint-initdb.d/init-database.sh
@@ -78,7 +122,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
       ZOOKEEPER_SYNC_LIMIT: 2
     networks:
-      - ompnw
+      - estnw
 
   kafka:
     image: confluentinc/cp-kafka
@@ -99,9 +143,9 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    command: sh -c "((sleep 15 && kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic templates)&) && /etc/confluent/docker/run"
+    command: sh -c "((sleep 15 && kafka-topics --create --zookeeper zookeeper:32181 --replication-factor 1 --partitions 1 --topic waters)&) && /etc/confluent/docker/run"
     networks:
-      - ompnw
+      - estnw
 
   kafka-ui:
     image: obsidiandynamics/kafdrop
@@ -115,7 +159,7 @@ services:
       KAFKA_BROKERCONNECT: "kafka:9092"
       JVM_OPTS: "-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
     networks:
-      - ompnw
+      - estnw
 
   swagger-ui:
     image: swaggerapi/swagger-ui
@@ -123,13 +167,22 @@ services:
       - 8081:8080
     restart: always
     volumes:
-      - ./swagger:/swagger
+      - swaggerdata:/swagger
     environment:
-      SWAGGER_JSON: /swagger/ozonmp/omp_template_api/v1/omp_template_api.swagger.json
+      SWAGGER_JSON: /swagger/ozonmp/est_water_api/v1/est_water_api.swagger.json
     depends_on:
-      - omp-template-api
+      - est-water-api
     networks:
-      - ompnw
+      - estnw
+    #labels:
+    #  - "traefik.enable=true"
+    #  - "traefik.http.routers.swagger-ui.rule=PathPrefix(`/swagger`)"
+    #  - "traefik.http.routers.swagger-ui.middlewares=add-slash,strip-prefix-swagger"
+    #  - "traefik.http.middlewares.add-slash.redirectregex.regex=^(https?://[^/]+/[a-z0-9_]+)$$"
+    #  - "traefik.http.middlewares.add-slash.redirectregex.replacement=$${1}/"
+    #  - "traefik.http.middlewares.add-slash.redirectregex.permanent=true"
+    #  - "traefik.http.middlewares.strip-prefix-swagger.stripprefix.prefixes=/swagger"
+    #  - "traefik.http.services.swagger-ui.loadbalancer.server.port=8080"
 
   jaeger:
     image: jaegertracing/all-in-one
@@ -143,7 +196,7 @@ services:
       - 6831:6831/udp
       - 16686:16686
     networks:
-      - ompnw
+      - estnw
 
   prometheus:
     image: prom/prometheus:latest
@@ -156,7 +209,7 @@ services:
     ports:
       - 9090:9090
     networks:
-      - ompnw
+      - estnw
     volumes:
       - "./prometheus.yml:/etc/prometheus/prometheus.yml"
 
@@ -171,7 +224,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=MYPASSWORT
       - GF_USERS_ALLOW_SIGN_UP=false
     networks:
-      - ompnw
+      - estnw
     volumes:
       - "./data/grafana:/var/lib/grafana"
 
@@ -191,7 +244,7 @@ services:
         limits:
           memory: 1g
     networks:
-      - ompnw
+      - estnw
     volumes:
       - esdata:/usr/share/elasticsearch/data
   # Elasticsearch: https://www.elastic.co/guide/en/elasticsearch/reference/6.x/docker.html
@@ -200,7 +253,7 @@ services:
     image: mongo:4.2
     restart: always
     networks:
-      - ompnw
+      - estnw
     volumes:
       - mongodata:/data/db
 
@@ -215,7 +268,7 @@ services:
       - GRAYLOG_HTTP_EXTERNAL_URI=http://127.0.0.1:9000/
     entrypoint: /usr/bin/tini -- wait-for-it elasticsearch:9200 --  /docker-entrypoint.sh
     networks:
-      - ompnw
+      - estnw
     links:
       - mongo
       - elasticsearch
@@ -235,7 +288,20 @@ services:
       - 12201:12201/udp
     restart: always
 
+  pypi-server:
+    image: pypiserver/pypiserver:latest
+    ports:
+      - 8084:8080
+    volumes:
+      - ./pypkg:/data/packages
+    command: -P . -a . /data/packages
+    restart: always
+    networks:
+      - estnw
+
 volumes:
+  swaggerdata:
+    driver: local
   pgdata:
     driver: local
   esdata:
@@ -244,5 +310,5 @@ volumes:
     driver: local
 
 networks:
-  ompnw:
+  estnw:
     driver: bridge

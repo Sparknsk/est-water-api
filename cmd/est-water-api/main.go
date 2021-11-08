@@ -12,6 +12,7 @@ import (
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	sigs := make(chan os.Signal, 1)
 
@@ -34,8 +35,4 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
 	<-sigs
-
-	cancel()
-
-	transponder.Close()
 }

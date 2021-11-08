@@ -28,10 +28,10 @@ type Water struct {
 	Model string
 	Manufacturer string
 	Material string
-	Speed uint
+	Speed uint32
 }
 
-func NewWater(id uint64, name string, model string, manufacturer string, material string, speed uint) *Water {
+func NewWater(id uint64, name string, model string, manufacturer string, material string, speed uint32) *Water {
 	return &Water{
 		id,
 		name,
