@@ -70,7 +70,7 @@ func TestProducer(t *testing.T) {
 				return nil
 			}).AnyTimes()
 
-			repo.EXPECT().Remove(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
+			repo.EXPECT().Remove(ctx, gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(ctx context.Context, eventIDs []uint64) error {
 				return nil
 			}).AnyTimes()
 
@@ -104,7 +104,7 @@ func TestProducer(t *testing.T) {
 			return errors.New("some error")
 		}).AnyTimes()
 
-		repo.EXPECT().Unlock(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
+		repo.EXPECT().Unlock(ctx, gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(ctx context.Context, eventIDs []uint64) error {
 			return nil
 		}).AnyTimes()
 

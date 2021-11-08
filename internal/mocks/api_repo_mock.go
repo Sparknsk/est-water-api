@@ -65,18 +65,18 @@ func (mr *MockRepoMockRecorder) DescribeWater(arg0, arg1 interface{}) *gomock.Ca
 }
 
 // ListWaters mocks base method.
-func (m *MockRepo) ListWaters(arg0 context.Context) ([]model.Water, error) {
+func (m *MockRepo) ListWaters(arg0 context.Context, arg1, arg2 uint64) ([]model.Water, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListWaters", arg0)
+	ret := m.ctrl.Call(m, "ListWaters", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]model.Water)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListWaters indicates an expected call of ListWaters.
-func (mr *MockRepoMockRecorder) ListWaters(arg0 interface{}) *gomock.Call {
+func (mr *MockRepoMockRecorder) ListWaters(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWaters", reflect.TypeOf((*MockRepo)(nil).ListWaters), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWaters", reflect.TypeOf((*MockRepo)(nil).ListWaters), arg0, arg1, arg2)
 }
 
 // RemoveWater mocks base method.

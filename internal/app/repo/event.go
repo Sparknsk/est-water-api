@@ -14,6 +14,7 @@ import (
 
 const waterEventTableName = "water_events"
 
+//go:generate mockgen -destination=../../mocks/repo_mock.go -package=mocks github.com/ozonmp/est-water-api/internal/app/repo EventRepo
 type EventRepo interface {
 	Lock(ctx context.Context, n uint64) ([]model.WaterEvent, error)
 	Unlock(ctx context.Context, eventIDs []uint64) error

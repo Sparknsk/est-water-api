@@ -22,10 +22,12 @@ func TestConsumerSuccess(t *testing.T) {
 	consumerCount := 5
 	eventsCh := make(chan model.WaterEvent, consumerCount-2)
 
+	ts := time.Now().UTC()
 	dummyEvent := model.WaterEvent{
 		ID: uint64(123),
+		WaterId: uint64(123),
 		Type: model.Created,
-		Status: model.Processed,
+		Status: model.Unlocked,
 		Entity: model.NewWater(
 			uint64(123),
 			"name",
@@ -33,10 +35,11 @@ func TestConsumerSuccess(t *testing.T) {
 			"manufacturer",
 			"material",
 			uint32(100),
+			&ts,
 		),
 	}
 
-	repo.EXPECT().Lock(gomock.Eq(batchSize)).DoAndReturn(func(n uint64) ([]model.WaterEvent, error) {
+	repo.EXPECT().Lock(ctx, gomock.Eq(batchSize)).DoAndReturn(func(ctx context.Context, n uint64) ([]model.WaterEvent, error) {
 		return []model.WaterEvent{dummyEvent}, nil
 	}).Times(consumerCount)
 
