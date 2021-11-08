@@ -2,8 +2,9 @@ package api
 
 import (
 	"context"
-	"github.com/ozonmp/est-water-api/internal/model"
+	"time"
 
+	"github.com/ozonmp/est-water-api/internal/model"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,6 +23,7 @@ func (w *waterAPI) CreateWaterV1 (
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
+	ts := time.Now().UTC()
 	water := model.NewWater(
 		uint64(1),
 		req.Name,
@@ -29,6 +31,7 @@ func (w *waterAPI) CreateWaterV1 (
 		req.Manufacturer,
 		req.Material,
 		req.Speed,
+		&ts,
 	)
 
 	if err := w.repo.CreateWater(ctx, water); err != nil {

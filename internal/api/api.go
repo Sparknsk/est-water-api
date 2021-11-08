@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
+
 	"github.com/ozonmp/est-water-api/internal/model"
 	"github.com/ozonmp/est-water-api/internal/repo"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -43,5 +45,6 @@ func modelWaterToProtobufWater(water *model.Water) *pb.Water {
 		Manufacturer: water.Manufacturer,
 		Material: water.Material,
 		Speed: water.Speed,
+		CreatedAt: timestamppb.New(*water.CreatedAt),
 	}
 }

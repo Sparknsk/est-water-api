@@ -23,8 +23,11 @@ require (
 )
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
+	github.com/Masterminds/squirrel v1.5.1
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
+	google.golang.org/protobuf v1.27.1
 )
 
 replace github.com/ozonmp/est-water-api/pkg/est-water-api => ./pkg/est-water-api

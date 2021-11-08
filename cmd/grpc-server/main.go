@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/pressly/goose/v3"
 	"github.com/rs/zerolog"
@@ -52,13 +54,15 @@ func main() {
 		cfg.Database.SslMode,
 	)
 
-	db, err := database.NewPostgres(dsn, cfg.Database.Driver)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	db, err := database.NewPostgres(ctx, dsn, cfg.Database.Driver)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed init postgres")
 	}
 	defer db.Close()
 
-	*migration = false // todo: need to delete this line for homework-4
 	if *migration {
 		if err = goose.Up(db.DB, cfg.Database.Migrations); err != nil {
 			log.Error().Err(err).Msg("Migration failed")
