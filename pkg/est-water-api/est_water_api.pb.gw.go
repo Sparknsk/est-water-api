@@ -117,9 +117,20 @@ func local_request_EstWaterApiService_DescribeWaterV1_0(ctx context.Context, mar
 
 }
 
+var (
+	filter_EstWaterApiService_ListWatersV1_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+)
+
 func request_EstWaterApiService_ListWatersV1_0(ctx context.Context, marshaler runtime.Marshaler, client EstWaterApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq ListWatersV1Request
 	var metadata runtime.ServerMetadata
+
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_EstWaterApiService_ListWatersV1_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
 
 	msg, err := client.ListWatersV1(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
@@ -129,6 +140,13 @@ func request_EstWaterApiService_ListWatersV1_0(ctx context.Context, marshaler ru
 func local_request_EstWaterApiService_ListWatersV1_0(ctx context.Context, marshaler runtime.Marshaler, server EstWaterApiServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq ListWatersV1Request
 	var metadata runtime.ServerMetadata
+
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_EstWaterApiService_ListWatersV1_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
 
 	msg, err := server.ListWatersV1(ctx, &protoReq)
 	return msg, metadata, err
