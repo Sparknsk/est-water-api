@@ -16,9 +16,10 @@ type Water struct {
 	Material string `db:"material" json:"material"`
 	Speed uint32 `db:"speed" json:"speed"`
 	CreatedAt *time.Time `db:"created_at" json:"created_at"`
+	DeleteStatus bool `db:"delete_status" json:"delete_status"`
 }
 
-func NewWater(id uint64, name string, model string, manufacturer string, material string, speed uint32, createdAt *time.Time) *Water {
+func NewWater(id uint64, name string, model string, manufacturer string, material string, speed uint32, createdAt *time.Time, deleteStatus bool) *Water {
 	return &Water{
 		id,
 		name,
@@ -27,6 +28,7 @@ func NewWater(id uint64, name string, model string, manufacturer string, materia
 		material,
 		speed,
 		createdAt,
+		deleteStatus,
 	}
 }
 

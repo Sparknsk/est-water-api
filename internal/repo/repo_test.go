@@ -32,6 +32,7 @@ func setup(t *testing.T) (
 		"Water material",
 		uint32(100),
 		&ts,
+		false,
 	)
 
 	return repo, ctx, mock, *water
@@ -44,8 +45,8 @@ func TestDescribeWater(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id"}).
 		AddRow(dummyWater.Id)
 
-	dbMock.ExpectQuery("SELECT \\* FROM water WHERE id = \\$1").
-		WithArgs(dummyWater.Id).
+	dbMock.ExpectQuery("SELECT \\* FROM water WHERE delete_status = \\$1 AND id = \\$2").
+		WithArgs(false, dummyWater.Id).
 		WillReturnRows(rows)
 
 	water, err := r.DescribeWater(ctx, dummyWater.Id)
@@ -61,7 +62,8 @@ func TestListWater(t *testing.T) {
 		AddRow(dummyWater.Id+1, dummyWater.Name).
 		AddRow(dummyWater.Id+2, dummyWater.Name)
 
-	dbMock.ExpectQuery("SELECT \\* FROM water ORDER BY id LIMIT 10 OFFSET 0").
+	dbMock.ExpectQuery("SELECT \\* FROM water WHERE delete_status = \\$1 ORDER BY id LIMIT 10 OFFSET 0").
+		WithArgs(false).
 		WillReturnRows(rows)
 
 	waters, err := r.ListWaters(ctx, 10, 0)
@@ -73,8 +75,8 @@ func TestRemoveWater(t *testing.T) {
 	r, ctx, dbMock, dummyWater := setup(t)
 
 	dummyWater.Id = 100
-	dbMock.ExpectExec("DELETE FROM water WHERE id = \\$1").
-		WithArgs(dummyWater.Id).
+	dbMock.ExpectExec("UPDATE water SET delete_status = \\$1 WHERE id = \\$2").
+		WithArgs(true, dummyWater.Id).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	err := r.RemoveWater(ctx, dummyWater.Id)

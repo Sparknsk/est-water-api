@@ -37,6 +37,7 @@ func setup(t *testing.T) (
 			"material",
 			uint32(100),
 			&ts,
+			false,
 		),
 	}
 
@@ -46,12 +47,12 @@ func setup(t *testing.T) (
 func TestLock(t *testing.T) {
 	r, ctx, dbMock, dummyWaterEvent := setup(t)
 
-	rows := sqlmock.NewRows([]string{"id", "water_id", "payload"}).
-		AddRow(dummyWaterEvent.ID+1, dummyWaterEvent.WaterId, *dummyWaterEvent.Entity).
-		AddRow(dummyWaterEvent.ID+2, dummyWaterEvent.WaterId+1, *dummyWaterEvent.Entity)
+	rows := sqlmock.NewRows([]string{"id", "water_id", "type", "status", "payload"}).
+		AddRow(dummyWaterEvent.ID+1, dummyWaterEvent.WaterId, dummyWaterEvent.Type, dummyWaterEvent.Status, *dummyWaterEvent.Entity).
+		AddRow(dummyWaterEvent.ID+2, dummyWaterEvent.WaterId+1, dummyWaterEvent.Type, dummyWaterEvent.Status, *dummyWaterEvent.Entity)
 
-	dbMock.ExpectQuery("UPDATE water_events we SET status = 'lock'").
-		WithArgs(2).
+	dbMock.ExpectQuery("WITH cte AS \\( SELECT id FROM water_events WHERE status = \\$1 ORDER BY id LIMIT 2 FOR NO KEY UPDATE \\) UPDATE water_events we SET status = \\$2 FROM cte WHERE we.id = cte.id RETURNING we.\\*").
+		WithArgs("unlock", "lock").
 		WillReturnRows(rows)
 
 	events, err := r.Lock(ctx, 2)

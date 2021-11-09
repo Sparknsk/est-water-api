@@ -32,7 +32,7 @@ func (r *repo) DescribeWater(ctx context.Context, waterID uint64) (*model.Water,
 	query := database.StatementBuilder.
 		Select("*").
 		From(waterTableName).
-		Where(sq.Eq{"id": waterID})
+		Where(sq.Eq{"id": waterID, "delete_status": false})
 
 	queryText, queryArgs, err := query.ToSql()
 	if err != nil {
@@ -78,6 +78,7 @@ func (r *repo) ListWaters(ctx context.Context, limit uint64, offset uint64) ([]m
 	query := database.StatementBuilder.
 		Select("*").
 		From(waterTableName).
+		Where(sq.Eq{"delete_status": false}).
 		Limit(limit).
 		Offset(offset).
 		OrderBy("id")
@@ -107,7 +108,8 @@ func (r *repo) ListWaters(ctx context.Context, limit uint64, offset uint64) ([]m
 
 func (r *repo) RemoveWater(ctx context.Context, waterID uint64) error {
 	query := database.StatementBuilder.
-		Delete(waterTableName).
+		Update(waterTableName).
+		Set("delete_status", true).
 		Where(sq.Eq{"id": waterID})
 
 	queryText, queryArgs, err := query.ToSql()

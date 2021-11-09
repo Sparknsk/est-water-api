@@ -32,6 +32,7 @@ func (w *waterAPI) CreateWaterV1 (
 		req.Material,
 		req.Speed,
 		&ts,
+		false,
 	)
 
 	if err := w.repo.CreateWater(ctx, water); err != nil {

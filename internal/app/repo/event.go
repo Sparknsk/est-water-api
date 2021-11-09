@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"time"
 
@@ -33,9 +34,24 @@ func NewEventRepo(db *sqlx.DB) EventRepo {
 
 func (er *eventRepo) Lock(ctx context.Context, n uint64) ([]model.WaterEvent, error) {
 	//TODO: потестировать потом NOWAIT, может будет быстрее обработать ошибку в consumer и пойти снова в базу за событиями
-	query := "WITH cte AS (SELECT id FROM water_events WHERE status = 'unlock' ORDER BY id LIMIT $1 FOR NO KEY UPDATE) UPDATE water_events we SET status = 'lock' FROM cte WHERE we.id = cte.id RETURNING we.*;"
+	subQuery := database.StatementBuilder.
+		Select("id").
+		From(waterEventTableName).
+		OrderBy("id").
+		Where(sq.Eq{"status": "unlock"}).
+		Limit(n).
+		Suffix("FOR NO KEY UPDATE")
 
-	rows, err := er.db.QueryxContext(ctx, query, n)
+	withQuery := subQuery.Prefix("WITH cte AS (").Suffix(")")
+
+	queryText, queryArgs, err := database.StatementBuilder.
+		Update(fmt.Sprintf("%s we", waterEventTableName)).
+		PrefixExpr(withQuery).
+		Set("status", "lock").
+		Suffix("FROM cte WHERE we.id = cte.id RETURNING we.*").
+		ToSql()
+
+	rows, err := er.db.QueryxContext(ctx, queryText, queryArgs...)
 	if err != nil {
 		return nil, err
 	}

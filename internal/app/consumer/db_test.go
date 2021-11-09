@@ -36,6 +36,7 @@ func TestConsumerSuccess(t *testing.T) {
 			"material",
 			uint32(100),
 			&ts,
+			false,
 		),
 	}
 

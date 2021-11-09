@@ -39,6 +39,7 @@ func setup(t *testing.T, eventsCount int) (
 			"material",
 			uint32(100),
 			&ts,
+			false,
 		),
 	}
 	events := make([]model.WaterEvent, 0, eventsCount)
