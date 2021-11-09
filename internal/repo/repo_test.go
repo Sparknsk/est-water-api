@@ -32,6 +32,7 @@ func setup(t *testing.T) (
 		"Water material",
 		uint32(100),
 		&ts,
+		nil,
 		false,
 	)
 
@@ -49,7 +50,7 @@ func TestDescribeWater(t *testing.T) {
 		WithArgs(false, dummyWater.Id).
 		WillReturnRows(rows)
 
-	water, err := r.DescribeWater(ctx, dummyWater.Id)
+	water, err := r.Get(ctx, dummyWater.Id)
 
 	assert.NotNil(t, water)
 	assert.NoError(t, err)
@@ -66,7 +67,7 @@ func TestListWater(t *testing.T) {
 		WithArgs(false).
 		WillReturnRows(rows)
 
-	waters, err := r.ListWaters(ctx, 10, 0)
+	waters, err := r.List(ctx, 10, 0)
 	assert.Equal(t, 2, len(waters))
 	assert.NoError(t, err)
 }
@@ -79,7 +80,7 @@ func TestRemoveWater(t *testing.T) {
 		WithArgs(true, dummyWater.Id).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	err := r.RemoveWater(ctx, dummyWater.Id)
+	err := r.Remove(ctx, dummyWater.Id)
 
 	assert.NoError(t, err)
 }
@@ -93,7 +94,7 @@ func TestCreateWaterSuccess(t *testing.T) {
 		WithArgs(dummyWater.Name, dummyWater.Model, dummyWater.Manufacturer, dummyWater.Material, dummyWater.Speed, dummyWater.CreatedAt).
 		WillReturnRows(rows)
 
-	err := r.CreateWater(ctx, &dummyWater)
+	err := r.Create(ctx, &dummyWater)
 
 	assert.Equal(t, uint64(1), dummyWater.Id)
 	assert.NoError(t, err)
@@ -105,7 +106,7 @@ func TestCreateWaterError(t *testing.T) {
 	dbMock.ExpectQuery("INSERT INTO water \\(name,model,manufacturer,material,speed,created_at\\) VALUES \\(\\$1,\\$2,\\$3,\\$4,\\$5,\\$6\\) RETURNING id").
 		WithArgs(dummyWater.Name, dummyWater.Model, dummyWater.Manufacturer, dummyWater.Material, dummyWater.Speed, dummyWater.CreatedAt)
 
-	err := r.CreateWater(ctx, &dummyWater)
+	err := r.Create(ctx, &dummyWater)
 
 	assert.Error(t, err)
 }

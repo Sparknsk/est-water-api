@@ -21,7 +21,7 @@ func (w *waterAPI) RemoveWaterV1(
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	if err := w.repo.RemoveWater(ctx, req.WaterId); err != nil {
+	if err := w.waterService.RemoveWater(ctx, req.WaterId); err != nil {
 		log.Error().Err(err).Msg("RemoveWaterV1 -- failed")
 
 		return nil, status.Error(codes.Internal, err.Error())

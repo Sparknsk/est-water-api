@@ -39,6 +39,7 @@ func setup(t *testing.T, eventsCount int) (
 			"material",
 			uint32(100),
 			&ts,
+			nil,
 			false,
 		),
 	}

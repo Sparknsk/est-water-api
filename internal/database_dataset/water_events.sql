@@ -23,9 +23,9 @@ VALUES
     (5, 'updated', 'unlock', '{"id": 5, "name": "Dubai", "model": "Yacht", "speed": 555, "material": "Iron", "created_at": "2006-01-01T17:54:12.674344Z", "manufacturer": "Germany", "updated_at": "2021-11-07 17:55:18.674344"}', '2021-11-07 17:55:18.674344', null),
     (5, 'updated', 'unlock', '{"id": 5, "name": "Dubai", "model": "Yacht", "speed": 600, "material": "Iron", "created_at": "2006-01-01T17:54:12.674344Z", "manufacturer": "Germany", "updated_at": "2021-11-07 17:55:19.674344"}', '2021-11-07 17:55:19.674344', null),
 
-    (8, 'removed', 'unlock', '{}', '2021-11-07 17:55:20.674344', null),
-    (4, 'removed', 'unlock', '{}', '2021-11-07 17:55:20.674344', null),
-    (6, 'removed', 'unlock', '{}', '2021-11-07 17:55:21.674344', null),
+    (8, 'removed', 'unlock', '{"id": 8, "name": "Wake 170 Sport", "model": "Jet ski", "speed": 50, "material": "Iron", "created_at": "2021-03-01T17:57:12.674344Z", "manufacturer": "Russia", "updated_at": "2021-11-07 17:55:17.674344"}', '2021-11-07 17:55:20.674344', null),
+    (4, 'removed', 'unlock', '{"id": 4, "name": "La Datcha", "model": "Yacht", "speed": 444, "material": "Iron", "created_at": "2009-01-01T17:53:12.674344Z", "manufacturer": "Netherlands", "updated_at": "2021-11-07 17:55:13.674344"}', '2021-11-07 17:55:20.674344', null),
+    (6, 'removed', 'unlock', '{"id": 6, "name": "Novosibirsk", "model": "Boat", "speed": 10, "material": "Wood", "created_at": "2021-01-01T17:55:12.674344Z", "manufacturer": "Russia", "updated_at": "2021-11-07 17:55:16.674344"}', '2021-11-07 17:55:21.674344', null),
 
     (1, 'updated', 'unlock', '{"id": 1, "name": "Eclipse 2.0", "model": "Yacht", "speed": 111, "material": "Iron/Gold", "created_at": "2009-01-01T17:50:12.674344Z", "manufacturer": "Germany", "updated_at": "2021-11-07 17:55:22.674344"}', '2021-11-07 17:55:22.674344', null),
     (2, 'updated', 'unlock', '{"id": 2, "name": "Serene 3.0", "model": "Yacht", "speed": 222, "material": "Iron", "created_at": "2010-01-01T17:51:12.674344Z", "manufacturer": "Italy", "updated_at": "2021-11-07 17:55:23.674344"}', '2021-11-07 17:55:23.674344', null);

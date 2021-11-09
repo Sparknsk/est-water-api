@@ -12,11 +12,13 @@ import (
 
 const waterTableName = "water"
 
+//go:generate mockgen -destination=../mocks/repo_mock.go -package=mocks github.com/ozonmp/est-water-api/internal/repo Repo
 type Repo interface {
-	DescribeWater(ctx context.Context, waterID uint64) (*model.Water, error)
-	CreateWater(ctx context.Context, water *model.Water) error
-	ListWaters(ctx context.Context, limit uint64, offset uint64) ([]model.Water, error)
-	RemoveWater(ctx context.Context, waterID uint64) error
+	Get(ctx context.Context, waterId uint64) (*model.Water, error)
+	Create(ctx context.Context, water *model.Water) error
+	List(ctx context.Context, limit uint64, offset uint64) ([]model.Water, error)
+	Remove(ctx context.Context, waterId uint64) error
+	Update(ctx context.Context, water *model.Water) error
 }
 
 type repo struct {
@@ -28,11 +30,11 @@ func NewRepo(db *sqlx.DB, batchSize uint) Repo {
 	return &repo{db: db, batchSize: batchSize}
 }
 
-func (r *repo) DescribeWater(ctx context.Context, waterID uint64) (*model.Water, error) {
+func (r *repo) Get(ctx context.Context, waterId uint64) (*model.Water, error) {
 	query := database.StatementBuilder.
 		Select("*").
 		From(waterTableName).
-		Where(sq.Eq{"id": waterID, "delete_status": false})
+		Where(sq.Eq{"id": waterId, "delete_status": false})
 
 	queryText, queryArgs, err := query.ToSql()
 	if err != nil {
@@ -59,7 +61,7 @@ func (r *repo) DescribeWater(ctx context.Context, waterID uint64) (*model.Water,
 	return &water, nil
 }
 
-func (r *repo) CreateWater(ctx context.Context, water *model.Water) error {
+func (r *repo) Create(ctx context.Context, water *model.Water) error {
 	query := database.StatementBuilder.
 		Insert(waterTableName).
 		Columns("name", "model", "manufacturer", "material", "speed", "created_at").
@@ -74,7 +76,7 @@ func (r *repo) CreateWater(ctx context.Context, water *model.Water) error {
 	return nil
 }
 
-func (r *repo) ListWaters(ctx context.Context, limit uint64, offset uint64) ([]model.Water, error) {
+func (r *repo) List(ctx context.Context, limit uint64, offset uint64) ([]model.Water, error) {
 	query := database.StatementBuilder.
 		Select("*").
 		From(waterTableName).
@@ -106,11 +108,32 @@ func (r *repo) ListWaters(ctx context.Context, limit uint64, offset uint64) ([]m
 	return res, err
 }
 
-func (r *repo) RemoveWater(ctx context.Context, waterID uint64) error {
+func (r *repo) Remove(ctx context.Context, waterId uint64) error {
 	query := database.StatementBuilder.
 		Update(waterTableName).
 		Set("delete_status", true).
-		Where(sq.Eq{"id": waterID})
+		Where(sq.Eq{"id": waterId})
+
+	queryText, queryArgs, err := query.ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = r.db.ExecContext(ctx, queryText, queryArgs...)
+	return err
+}
+
+func (r *repo) Update(ctx context.Context, water *model.Water) error {
+	query := database.StatementBuilder.
+		Update(waterTableName).
+		Set("name", water.Name).
+		Set("model", water.Model).
+		Set("material", water.Material).
+		Set("manufacturer", water.Manufacturer).
+		Set("speed", water.Speed).
+		Set("updated_at", water.UpdatedAt).
+		Where(sq.Eq{"id": water.Id}).
+		RunWith(r.db)
 
 	queryText, queryArgs, err := query.ToSql()
 	if err != nil {

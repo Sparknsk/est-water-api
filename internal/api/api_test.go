@@ -5,26 +5,28 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/ozonmp/est-water-api/internal/mocks"
 	"github.com/ozonmp/est-water-api/internal/model"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
-
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 )
 
 func setup(t *testing.T) (
-	*mocks.MockRepo,
+	*mocks.MockService,
 	context.Context,
 	pb.EstWaterApiServiceServer,
 ) {
 	ctrl := gomock.NewController(t)
-	repo := mocks.NewMockRepo(ctrl)
+
+	service := mocks.NewMockService(ctrl)
+
 	ctx := context.Background()
 
-	api := NewWaterAPI(repo)
+	api := NewWaterAPI(service)
 
-	return repo, ctx, api
+	return service, ctx, api
 }
 
 func TestApiCreateWater(t *testing.T) {
@@ -41,7 +43,7 @@ func TestApiCreateWater(t *testing.T) {
 	}
 	for testName, testCase := range testCases {
 		t.Run(testName, func(t *testing.T) {
-			repo, ctx, api := setup(t)
+			service, ctx, api := setup(t)
 
 			dummyWater := model.Water{
 				Name: "name",
@@ -63,8 +65,8 @@ func TestApiCreateWater(t *testing.T) {
 				dummyWater.Speed = uint32(testCase.value.(int))
 			}
 
-			repo.EXPECT().
-				CreateWater(gomock.Eq(ctx), gomock.Eq(model.Water{})).
+			service.EXPECT().
+				CreateWater(gomock.Eq(ctx), gomock.Eq(dummyWater.Name), gomock.Eq(dummyWater.Model), gomock.Eq(dummyWater.Material), gomock.Eq(dummyWater.Manufacturer), gomock.Eq(dummyWater.Speed)).
 				DoAndReturn(func(ctx context.Context, water *model.Water) error {
 					return nil
 				}).AnyTimes()
@@ -86,23 +88,23 @@ func TestApiCreateWater(t *testing.T) {
 
 func TestApiDescribeWater(t *testing.T) {
 	testCases := map[string]struct {
-		waterID uint64
+		waterId uint64
 		expectedErrorMessagePart string
 	}{
-		"Validate error": {waterID: 0, expectedErrorMessagePart: "InvalidArgument"},
-		"404 error": {waterID: 1, expectedErrorMessagePart: "water not found"},
+		"Validate error": {waterId: 0, expectedErrorMessagePart: "InvalidArgument"},
+		"404 error": {waterId: 1, expectedErrorMessagePart: "water not found"},
 	}
 	for testName, testCase := range testCases {
 		t.Run(testName, func(t *testing.T) {
-			repo, ctx, api := setup(t)
+			service, ctx, api := setup(t)
 
-			repo.EXPECT().
-				DescribeWater(gomock.Eq(ctx), gomock.Eq(testCase.waterID)).
-				DoAndReturn(func(ctx context.Context, waterID uint64) (*model.Water, error) {
+			service.EXPECT().
+				DescribeWater(gomock.Eq(ctx), gomock.Eq(testCase.waterId)).
+				DoAndReturn(func(ctx context.Context, waterId uint64) (*model.Water, error) {
 					return nil, nil
 				}).AnyTimes()
 
-			req := pb.DescribeWaterV1Request{WaterId: testCase.waterID}
+			req := pb.DescribeWaterV1Request{WaterId: testCase.waterId}
 			_, err := api.DescribeWaterV1(ctx, &req)
 
 			assert.NotNil(t, err)
@@ -113,22 +115,22 @@ func TestApiDescribeWater(t *testing.T) {
 
 func TestApiRemoveWater(t *testing.T) {
 	testCases := map[string]struct {
-		waterID uint64
+		waterId uint64
 		expectedErrorMessagePart string
 	}{
-		"Validate error": {waterID: 0, expectedErrorMessagePart: "InvalidArgument"},
+		"Validate error": {waterId: 0, expectedErrorMessagePart: "InvalidArgument"},
 	}
 	for testName, testCase := range testCases {
 		t.Run(testName, func(t *testing.T) {
-			repo, ctx, api := setup(t)
+			service, ctx, api := setup(t)
 
-			repo.EXPECT().
-				RemoveWater(gomock.Eq(ctx), gomock.Eq(testCase.waterID)).
-				DoAndReturn(func(ctx context.Context, waterID uint64) error {
+			service.EXPECT().
+				RemoveWater(gomock.Eq(ctx), gomock.Eq(testCase.waterId)).
+				DoAndReturn(func(ctx context.Context, waterId uint64) error {
 					return nil
 				}).AnyTimes()
 
-			req := pb.RemoveWaterV1Request{WaterId: testCase.waterID}
+			req := pb.RemoveWaterV1Request{WaterId: testCase.waterId}
 			_, err := api.RemoveWaterV1(ctx, &req)
 
 			assert.NotNil(t, err)

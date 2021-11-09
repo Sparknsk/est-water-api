@@ -8,8 +8,12 @@ import (
 
 const (
 	Created EventType = iota
-	Updated
 	Removed
+	UpdatedName
+	UpdatedModel
+	UpdatedManufacturer
+	UpdatedMaterial
+	UpdatedSpeed
 
 	Locked EventStatus = iota
 	Unlocked
@@ -34,10 +38,18 @@ func (et EventType) Value() (driver.Value, error) {
 	switch et {
 	case Created:
 		eventType = "created"
-	case Updated:
-		eventType = "updated"
 	case Removed:
 		eventType = "removed"
+	case UpdatedName:
+		eventType = "updated_name"
+	case UpdatedModel:
+		eventType = "updated_model"
+	case UpdatedMaterial:
+		eventType = "updated_material"
+	case UpdatedManufacturer:
+		eventType = "updated_manufacturer"
+	case UpdatedSpeed:
+		eventType = "updated_speed"
 	default:
 		return nil, errors.New("undefined event type")
 	}
@@ -52,10 +64,18 @@ func (et *EventType) Scan(src interface{}) (err error) {
 	switch src {
 	case "created":
 		eventType = Created
-	case "updated":
-		eventType = Updated
 	case "removed":
 		eventType = Removed
+	case "updated_name":
+		eventType = UpdatedName
+	case "updated_model":
+		eventType = UpdatedModel
+	case "updated_material":
+		eventType = UpdatedMaterial
+	case "updated_manufacturer":
+		eventType = UpdatedManufacturer
+	case "updated_speed":
+		eventType = UpdatedSpeed
 	default:
 		return errors.New("undefined event type")
 	}

@@ -37,6 +37,7 @@ func setup(t *testing.T) (
 			"material",
 			uint32(100),
 			&ts,
+			nil,
 			false,
 		),
 	}
@@ -51,8 +52,8 @@ func TestLock(t *testing.T) {
 		AddRow(dummyWaterEvent.ID+1, dummyWaterEvent.WaterId, dummyWaterEvent.Type, dummyWaterEvent.Status, *dummyWaterEvent.Entity).
 		AddRow(dummyWaterEvent.ID+2, dummyWaterEvent.WaterId+1, dummyWaterEvent.Type, dummyWaterEvent.Status, *dummyWaterEvent.Entity)
 
-	dbMock.ExpectQuery("WITH cte AS \\( SELECT id FROM water_events WHERE status = \\$1 ORDER BY id LIMIT 2 FOR NO KEY UPDATE \\) UPDATE water_events we SET status = \\$2 FROM cte WHERE we.id = cte.id RETURNING we.\\*").
-		WithArgs("unlock", "lock").
+	dbMock.ExpectQuery("WITH cte AS \\( SELECT id FROM water_events WHERE status = \\$1 ORDER BY id LIMIT 2 FOR NO KEY UPDATE \\) UPDATE water_events we SET status = \\$2, updated_at = \\$3 FROM cte WHERE we.id = cte.id RETURNING we.\\*").
+		WithArgs("unlock", "lock", sqlmock.AnyArg()).
 		WillReturnRows(rows)
 
 	events, err := r.Lock(ctx, 2)
@@ -90,14 +91,15 @@ func TestRemove(t *testing.T) {
 func TestAdd(t *testing.T) {
 	r, ctx, dbMock, dummyWaterEvent := setup(t)
 
-	rows := sqlmock.NewRows([]string{"id"}).AddRow(dummyWaterEvent.ID+1)
+	dbMock.ExpectExec("INSERT INTO water_events \\(water_id,type,status,payload,created_at\\) VALUES \\(\\$1,\\$2,\\$3,\\$4,\\$5\\),\\(\\$6,\\$7,\\$8,\\$9,\\$10\\)").
+		WithArgs(
+			dummyWaterEvent.WaterId, dummyWaterEvent.Type, dummyWaterEvent.Status, dummyWaterEvent.Entity, dummyWaterEvent.CreatedAt,
+			dummyWaterEvent.WaterId, dummyWaterEvent.Type, dummyWaterEvent.Status, dummyWaterEvent.Entity, dummyWaterEvent.CreatedAt,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 2))
 
-	dbMock.ExpectQuery("INSERT INTO water_events \\(water_id,type,status,payload,created_at\\) VALUES \\(\\$1,\\$2,\\$3,\\$4,\\$5\\) RETURNING id").
-		WithArgs(dummyWaterEvent.WaterId, dummyWaterEvent.Type, dummyWaterEvent.Status, dummyWaterEvent.Entity, dummyWaterEvent.CreatedAt).
-		WillReturnRows(rows)
+	dummyWaterEvents := []model.WaterEvent{dummyWaterEvent, dummyWaterEvent}
+	err := r.Add(ctx, dummyWaterEvents)
 
-	err := r.Add(ctx, &dummyWaterEvent)
-
-	assert.Equal(t, uint64(1), dummyWaterEvent.ID)
 	assert.NoError(t, err)
 }

@@ -35,6 +35,13 @@ service EstWaterApiService {
       delete: "/v1/waters/{water_id}"
     };
   }
+  // UpdateWaterV1 - Update a water autotransport
+  rpc UpdateWaterV1(UpdateWaterV1Request) returns (UpdateWaterV1Response) {
+    option (google.api.http) = {
+      put: "/v1/waters/{water_id}"
+      body: "*"
+    };
+  }
 }
 
 message Water {
@@ -91,3 +98,13 @@ message RemoveWaterV1Request {
 }
 
 message RemoveWaterV1Response {}
+
+message UpdateWaterV1Request {
+  uint64 water_id = 1 [(validate.rules).uint64.gt = 0];
+  string name = 2 [(validate.rules).string = {min_len: 3, max_len: 50}];
+  uint32 speed = 3 [(validate.rules).uint32 = {gt: 0, lte: 1000}];
+}
+
+message UpdateWaterV1Response {
+  Water water = 1;
+}

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS water (
      material VARCHAR (100) NOT NULL,
      speed INTEGER NOT NULL,
      created_at TIMESTAMP NOT NULL,
+     updated_at TIMESTAMP,
      delete_status BOOL NOT NULL DEFAULT FALSE
 ) PARTITION BY RANGE (id);
 
@@ -18,7 +19,7 @@ CREATE TABLE IF NOT EXISTS water_p5 PARTITION OF water FOR VALUES FROM (31) TO (
 
 CREATE INDEX idx_delete_status ON water(delete_status);
 
-CREATE TYPE water_events_type AS ENUM ('created', 'updated', 'removed');
+CREATE TYPE water_events_type AS ENUM ('created', 'removed', 'updated_name', 'updated_model', 'updated_material', 'updated_manufacturer', 'updated_speed');
 CREATE TYPE water_events_status AS ENUM ('lock', 'unlock');
 CREATE TABLE IF NOT EXISTS water_events (
     id BIGSERIAL PRIMARY KEY,

@@ -25,8 +25,10 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 
 	"github.com/ozonmp/est-water-api/internal/api"
+	er "github.com/ozonmp/est-water-api/internal/app/repo"
 	"github.com/ozonmp/est-water-api/internal/config"
 	"github.com/ozonmp/est-water-api/internal/repo"
+	water_service "github.com/ozonmp/est-water-api/internal/service/water"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
 )
 
@@ -107,9 +109,11 @@ func (s *GrpcServer) Start(cfg *config.Config) error {
 		)),
 	)
 
-	r := repo.NewRepo(s.db, s.batchSize)
+	repository := repo.NewRepo(s.db, s.batchSize)
+	eventRepository := er.NewEventRepo(s.db)
+	service := water_service.NewService(s.db, repository, eventRepository)
 
-	pb.RegisterEstWaterApiServiceServer(grpcServer, api.NewWaterAPI(r))
+	pb.RegisterEstWaterApiServiceServer(grpcServer, api.NewWaterAPI(service))
 	grpc_prometheus.EnableHandlingTimeHistogram()
 	grpc_prometheus.Register(grpcServer)
 

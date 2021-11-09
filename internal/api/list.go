@@ -21,7 +21,7 @@ func (w *waterAPI) ListWatersV1(
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	waters, err := w.repo.ListWaters(ctx, req.Limit, req.Offset)
+	waters, err := w.waterService.ListWaters(ctx, req.Limit, req.Offset)
 	if err != nil {
 		log.Error().Err(err).Msg("ListWatersV1 -- failed")
 
