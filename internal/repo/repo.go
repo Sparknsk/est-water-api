@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 
@@ -42,6 +43,7 @@ func (r *repo) DescribeWater(ctx context.Context, waterID uint64) (*model.Water,
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var water model.Water
 	for rows.Next() {
@@ -90,6 +92,7 @@ func (r *repo) ListWaters(ctx context.Context, limit uint64, offset uint64) ([]m
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var water model.Water
 	for rows.Next() {

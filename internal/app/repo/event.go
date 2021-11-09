@@ -19,7 +19,7 @@ type EventRepo interface {
 	Lock(ctx context.Context, n uint64) ([]model.WaterEvent, error)
 	Unlock(ctx context.Context, eventIDs []uint64) error
 
-	Add(ctx context.Context, events []model.WaterEvent) error
+	Add(ctx context.Context, event model.WaterEvent) error
 	Remove(ctx context.Context, eventIDs []uint64) error
 }
 
@@ -39,6 +39,7 @@ func (er *eventRepo) Lock(ctx context.Context, n uint64) ([]model.WaterEvent, er
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	waterEvents := make([]model.WaterEvent, 0, n)
 	for rows.Next() {
@@ -82,6 +83,7 @@ func (er *eventRepo) Lock(ctx context.Context, n uint64) ([]model.WaterEvent, er
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var waterEvents []model.WaterEvent
 	for rows.Next() {
@@ -131,23 +133,19 @@ func (er *eventRepo) Remove(ctx context.Context, eventIDs []uint64) error {
 	return err
 }
 
-// Add TODO: на данном этапе метод не нужен
-func (er *eventRepo) Add(ctx context.Context, events []model.WaterEvent) error {
-	/*query := database.StatementBuilder.
+func (er *eventRepo) Add(ctx context.Context, event model.WaterEvent) error {
+	query := database.StatementBuilder.
 		Insert(waterEventTableName).
-		Columns("water_id", "type", "status", "payload", "created_at")
-
-	for waterEvent := range events {
-		query.Values(waterEvent.WaterId, waterEvent.Type, waterEvent.Status, waterEvent.Entity, waterEvent.CreatedAt)
-	}
+		Columns("water_id", "type", "status", "payload", "created_at").
+		Values(event.WaterId, event.Type, event.Status, event.Entity, event.CreatedAt)
 
 	queryText, queryArgs, err := query.ToSql()
 	if err != nil {
 		return err
 	}
 
+
 	_, err = er.db.ExecContext(ctx, queryText, queryArgs...)
 
-	return err*/
-	return nil
+	return err
 }

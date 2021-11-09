@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql/driver"
 	"errors"
 	"time"
 )
@@ -28,6 +29,21 @@ type WaterEvent struct {
 	UpdatedAt *time.Time `db:"updated_at"`
 }
 
+func (et EventType) Value() (driver.Value, error) {
+	var eventType string
+	switch et {
+	case Created:
+		eventType = "created"
+	case Updated:
+		eventType = "updated"
+	case Removed:
+		eventType = "removed"
+	default:
+		return nil, errors.New("undefined event type")
+	}
+	return eventType, nil
+}
+
 func (et *EventType) Scan(src interface{}) (err error) {
 	if src == nil {
 		return nil
@@ -52,7 +68,20 @@ func (et *EventType) Scan(src interface{}) (err error) {
 	return nil
 }
 
-func (et *EventStatus) Scan(src interface{}) (err error) {
+func (es EventStatus) Value() (driver.Value, error) {
+	var eventStatus string
+	switch es {
+	case Unlocked:
+		eventStatus = "unlock"
+	case Locked:
+		eventStatus = "lock"
+	default:
+		return nil, errors.New("undefined event status")
+	}
+	return eventStatus, nil
+}
+
+func (es *EventStatus) Scan(src interface{}) (err error) {
 	if src == nil {
 		return nil
 	}
@@ -70,6 +99,6 @@ func (et *EventStatus) Scan(src interface{}) (err error) {
 		return err
 	}
 
-	*et = eventStatus
+	*es = eventStatus
 	return nil
 }
