@@ -25,7 +25,7 @@ func setup(t *testing.T) (
 
 	ts := time.Now().UTC()
 	water := model.NewWater(
-		uint64(100),
+		uint64(0),
 		"Water name",
 		"Water model",
 		"Water manufacturer",
@@ -40,6 +40,7 @@ func setup(t *testing.T) (
 func TestDescribeWater(t *testing.T) {
 	r, ctx, dbMock, dummyWater := setup(t)
 
+	dummyWater.Id = 100
 	rows := sqlmock.NewRows([]string{"id"}).
 		AddRow(dummyWater.Id)
 
@@ -57,8 +58,8 @@ func TestListWater(t *testing.T) {
 	r, ctx, dbMock, dummyWater := setup(t)
 
 	rows := sqlmock.NewRows([]string{"id", "name"}).
-		AddRow(dummyWater.Id, dummyWater.Name).
-		AddRow(dummyWater.Id+1, dummyWater.Name)
+		AddRow(dummyWater.Id+1, dummyWater.Name).
+		AddRow(dummyWater.Id+2, dummyWater.Name)
 
 	dbMock.ExpectQuery("SELECT \\* FROM water ORDER BY id LIMIT 10 OFFSET 0").
 		WillReturnRows(rows)
@@ -69,13 +70,14 @@ func TestListWater(t *testing.T) {
 }
 
 func TestRemoveWater(t *testing.T) {
-	r, ctx, dbMock, dummyEvent := setup(t)
+	r, ctx, dbMock, dummyWater := setup(t)
 
+	dummyWater.Id = 100
 	dbMock.ExpectExec("DELETE FROM water WHERE id = \\$1").
-		WithArgs(dummyEvent.Id).
+		WithArgs(dummyWater.Id).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	err := r.RemoveWater(ctx, dummyEvent.Id)
+	err := r.RemoveWater(ctx, dummyWater.Id)
 
 	assert.NoError(t, err)
 }
@@ -83,7 +85,7 @@ func TestRemoveWater(t *testing.T) {
 func TestCreateWaterSuccess(t *testing.T) {
 	r, ctx, dbMock, dummyWater := setup(t)
 
-	rows := sqlmock.NewRows([]string{"id"}).AddRow(dummyWater.Id)
+	rows := sqlmock.NewRows([]string{"id"}).AddRow(dummyWater.Id+1)
 
 	dbMock.ExpectQuery("INSERT INTO water \\(name,model,manufacturer,material,speed,created_at\\) VALUES \\(\\$1,\\$2,\\$3,\\$4,\\$5,\\$6\\) RETURNING id").
 		WithArgs(dummyWater.Name, dummyWater.Model, dummyWater.Manufacturer, dummyWater.Material, dummyWater.Speed, dummyWater.CreatedAt).
@@ -91,6 +93,7 @@ func TestCreateWaterSuccess(t *testing.T) {
 
 	err := r.CreateWater(ctx, &dummyWater)
 
+	assert.Equal(t, uint64(1), dummyWater.Id)
 	assert.NoError(t, err)
 }
 

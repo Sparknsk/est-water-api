@@ -25,7 +25,7 @@ func setup(t *testing.T) (
 
 	ts := time.Now().UTC()
 	waterEvent := model.WaterEvent{
-		ID: uint64(1),
+		ID: uint64(0),
 		WaterId: uint64(1),
 		Type: model.Created,
 		Status: model.Unlocked,
@@ -47,8 +47,8 @@ func TestLock(t *testing.T) {
 	r, ctx, dbMock, dummyWaterEvent := setup(t)
 
 	rows := sqlmock.NewRows([]string{"id", "water_id", "payload"}).
-		AddRow(dummyWaterEvent.ID, dummyWaterEvent.WaterId, *dummyWaterEvent.Entity).
-		AddRow(dummyWaterEvent.ID+1, dummyWaterEvent.WaterId+1, *dummyWaterEvent.Entity)
+		AddRow(dummyWaterEvent.ID+1, dummyWaterEvent.WaterId, *dummyWaterEvent.Entity).
+		AddRow(dummyWaterEvent.ID+2, dummyWaterEvent.WaterId+1, *dummyWaterEvent.Entity)
 
 	dbMock.ExpectQuery("UPDATE water_events we SET status = 'lock'").
 		WithArgs(2).
@@ -83,5 +83,20 @@ func TestRemove(t *testing.T) {
 
 	err := r.Remove(ctx, eventIDs)
 
+	assert.NoError(t, err)
+}
+
+func TestAdd(t *testing.T) {
+	r, ctx, dbMock, dummyWaterEvent := setup(t)
+
+	rows := sqlmock.NewRows([]string{"id"}).AddRow(dummyWaterEvent.ID+1)
+
+	dbMock.ExpectQuery("INSERT INTO water_events \\(water_id,type,status,payload,created_at\\) VALUES \\(\\$1,\\$2,\\$3,\\$4,\\$5\\) RETURNING id").
+		WithArgs(dummyWaterEvent.WaterId, dummyWaterEvent.Type, dummyWaterEvent.Status, dummyWaterEvent.Entity, dummyWaterEvent.CreatedAt).
+		WillReturnRows(rows)
+
+	err := r.Add(ctx, &dummyWaterEvent)
+
+	assert.Equal(t, uint64(1), dummyWaterEvent.ID)
 	assert.NoError(t, err)
 }

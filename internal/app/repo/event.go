@@ -19,7 +19,7 @@ type EventRepo interface {
 	Lock(ctx context.Context, n uint64) ([]model.WaterEvent, error)
 	Unlock(ctx context.Context, eventIDs []uint64) error
 
-	Add(ctx context.Context, event model.WaterEvent) error
+	Add(ctx context.Context, event *model.WaterEvent) error
 	Remove(ctx context.Context, eventIDs []uint64) error
 }
 
@@ -133,19 +133,17 @@ func (er *eventRepo) Remove(ctx context.Context, eventIDs []uint64) error {
 	return err
 }
 
-func (er *eventRepo) Add(ctx context.Context, event model.WaterEvent) error {
+func (er *eventRepo) Add(ctx context.Context, event *model.WaterEvent) error {
 	query := database.StatementBuilder.
 		Insert(waterEventTableName).
 		Columns("water_id", "type", "status", "payload", "created_at").
-		Values(event.WaterId, event.Type, event.Status, event.Entity, event.CreatedAt)
+		Values(event.WaterId, event.Type, event.Status, event.Entity, event.CreatedAt).
+		Suffix("RETURNING id").
+		RunWith(er.db)
 
-	queryText, queryArgs, err := query.ToSql()
-	if err != nil {
+	if err := query.QueryRowContext(ctx).Scan(&event.ID); err != nil {
 		return err
 	}
 
-
-	_, err = er.db.ExecContext(ctx, queryText, queryArgs...)
-
-	return err
+	return nil
 }
