@@ -28,8 +28,6 @@ func (w *waterAPI) ListWatersV1(
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	log.Debug().Msg("ListWatersV1 - success")
-
 	var watersPb []*pb.Water
 	for _, water := range waters {
 		watersPb = append(watersPb, modelWaterToProtobufWater(&water))

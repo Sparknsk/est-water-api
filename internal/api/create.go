@@ -40,8 +40,6 @@ func (w *waterAPI) CreateWaterV1 (
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	log.Debug().Msg("CreateWaterV1 - success")
-
 	return &pb.CreateWaterV1Response{
 		Water: modelWaterToProtobufWater(water),
 	}, nil

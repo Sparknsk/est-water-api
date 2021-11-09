@@ -27,7 +27,5 @@ func (w *waterAPI) RemoveWaterV1(
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	log.Debug().Msg("RemoveWaterV1 - success")
-
 	return &pb.RemoveWaterV1Response{}, nil
 }

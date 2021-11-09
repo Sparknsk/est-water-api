@@ -29,13 +29,10 @@ func (w *waterAPI) DescribeWaterV1(
 	}
 
 	if water == nil {
-		log.Debug().Uint64("waterId", req.WaterId).Msg("water not found")
 		totalWaterNotFound.Inc()
 
 		return nil, status.Error(codes.NotFound, "water not found")
 	}
-
-	log.Debug().Msg("DescribeWaterV1 - success")
 
 	return &pb.DescribeWaterV1Response{
 		Water: modelWaterToProtobufWater(water),
