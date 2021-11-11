@@ -73,7 +73,7 @@ func (s *waterService) UpdateWater(ctx context.Context, waterId uint64, waterNam
 			if err := tx.Rollback(); err != nil {
 				return nil, errors.Wrap(err, "tx.Rollback()")
 			}
-			return nil, errors.New("waterEventRepository.Add()")
+			return nil, errors.Wrap(err, "waterEventRepository.Add()")
 		}
 
 		if err := tx.Commit(); err != nil {

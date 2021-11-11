@@ -40,7 +40,7 @@ func (s *waterService) CreateWater(ctx context.Context, waterName string, waterM
 		if err := tx.Rollback(); err != nil {
 			return nil, errors.Wrap(err, "tx.Rollback()")
 		}
-		return nil, errors.New("waterEventRepository.Add()")
+		return nil, errors.Wrap(err,"waterEventRepository.Add()")
 	}
 
 	if err := tx.Commit(); err != nil {
