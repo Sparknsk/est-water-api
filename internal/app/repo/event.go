@@ -32,7 +32,6 @@ func NewEventRepo(db *sqlx.DB) EventRepo {
 }
 
 func (er *eventRepo) Lock(ctx context.Context, n uint64) ([]model.WaterEvent, error) {
-	//TODO: потестировать потом NOWAIT, может будет быстрее обработать ошибку в consumer и пойти снова в базу за событиями
 	subQuery := database.StatementBuilder.
 		Select("id").
 		From(waterEventTableName).
@@ -72,50 +71,6 @@ func (er *eventRepo) Lock(ctx context.Context, n uint64) ([]model.WaterEvent, er
 
 	return waterEvents, nil
 }
-
-// Lock TODO: блокировка с воркшопа, возможно получиться потестировать на производительность после следующих воркшопов, пока оставлю (+ не уверен, что верно использую ее в цикле, надо будет уточнить)
-/*func (er *eventRepo) Lock(ctx context.Context, n uint64) ([]model.WaterEvent, error) {
-	tx, err := er.db.Beginx()
-	defer tx.Commit()
-	for {
-		if err != nil {
-			return nil, err
-		}
-
-		var isAcquired bool
-		lockQueryText := "SELECT pg_try_advisory_xact_lock(100)"
-		err = tx.GetContext(ctx, &isAcquired, lockQueryText)
-		if err != nil {
-			return nil, err
-		}
-
-		if isAcquired == true {
-			break
-		}
-	}
-
-	query := "WITH cte AS (SELECT id FROM water_events WHERE status = 'unlock' ORDER BY id LIMIT $1) UPDATE water_events we SET status = 'lock' FROM cte WHERE we.id = cte.id RETURNING we.*;"
-	rows, err := tx.QueryxContext(ctx, query, n)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var waterEvents []model.WaterEvent
-	for rows.Next() {
-		var waterEvent model.WaterEvent
-		if err = rows.StructScan(&waterEvent); err != nil {
-			return nil, err
-		}
-		waterEvents = append(waterEvents, waterEvent)
-	}
-
-	sort.Slice(waterEvents, func(i, j int) bool {
-		return waterEvents[i].ID < waterEvents[j].ID
-	})
-
-	return waterEvents, nil
-}*/
 
 func (er *eventRepo) Unlock(ctx context.Context, eventIDs []uint64) (err error) {
 	query := database.StatementBuilder.
