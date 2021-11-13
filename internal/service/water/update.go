@@ -2,7 +2,6 @@ package water_service
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -13,13 +12,11 @@ import (
 func (s *waterService) UpdateWater(ctx context.Context, waterId uint64, waterName string, waterSpeed uint32) (*model.Water, error) {
 	water, err := s.waterRepository.Get(ctx, waterId)
 	if err != nil {
-		return nil, errors.Wrap(err, "waterRepository.Get()")
+		return nil, errors.Wrap(err, "waterRepository.Get() failed")
 	}
 
-	fmt.Println(water)
-
 	if water == nil {
-		return nil, errors.Wrap(err, "Entity not found")
+		return nil, WaterNotFound
 	}
 
 	ts := time.Now().UTC()
@@ -62,22 +59,22 @@ func (s *waterService) UpdateWater(ctx context.Context, waterId uint64, waterNam
 	if len(waterEvents) > 0 {
 		tx, err := s.db.BeginTxx(ctx, nil)
 		if err != nil {
-			return nil, errors.Wrap(err, "db.BeginTxx()")
+			return nil, errors.Wrap(err, "db.BeginTxx() failed")
 		}
 
 		if err := s.waterRepository.Update(ctx, water); err != nil {
-			return nil, errors.Wrap(err, "waterRepository.Update()")
+			return nil, errors.Wrap(err, "waterRepository.Update() failed")
 		}
 
 		if err := s.waterEventRepository.Add(ctx, waterEvents); err != nil {
 			if err := tx.Rollback(); err != nil {
-				return nil, errors.Wrap(err, "tx.Rollback()")
+				return nil, errors.Wrap(err, "tx.Rollback() failed")
 			}
-			return nil, errors.Wrap(err, "waterEventRepository.Add()")
+			return nil, errors.Wrap(err, "waterEventRepository.Add() failed")
 		}
 
 		if err := tx.Commit(); err != nil {
-			return nil, errors.Wrap(err, "tx.Commit()")
+			return nil, errors.Wrap(err, "tx.Commit() failed")
 		}
 	}
 

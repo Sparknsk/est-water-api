@@ -13,7 +13,7 @@ func (s *waterService) CreateWater(ctx context.Context, waterName string, waterM
 
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "db.BeginTxx()")
+		return nil, errors.Wrap(err, "db.BeginTxx() failed")
 	}
 
 	ts := time.Now().UTC()
@@ -26,7 +26,7 @@ func (s *waterService) CreateWater(ctx context.Context, waterName string, waterM
 		CreatedAt: &ts,
 	}
 	if err := s.waterRepository.Create(ctx, &water); err != nil {
-		return nil, errors.Wrap(err, "waterRepository.Create()")
+		return nil, errors.Wrap(err, "waterRepository.Create() failed")
 	}
 
 	waterEvent := model.WaterEvent{
@@ -38,13 +38,13 @@ func (s *waterService) CreateWater(ctx context.Context, waterName string, waterM
 	}
 	if err := s.waterEventRepository.Add(ctx, []model.WaterEvent{waterEvent}); err != nil {
 		if err := tx.Rollback(); err != nil {
-			return nil, errors.Wrap(err, "tx.Rollback()")
+			return nil, errors.Wrap(err, "tx.Rollback() failed")
 		}
-		return nil, errors.Wrap(err,"waterEventRepository.Add()")
+		return nil, errors.Wrap(err,"waterEventRepository.Add() failed")
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, errors.Wrap(err, "tx.Commit()")
+		return nil, errors.Wrap(err, "tx.Commit() failed")
 	}
 
 	return &water, nil

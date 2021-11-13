@@ -12,7 +12,7 @@ import (
 func (s *waterService) RemoveWater(ctx context.Context, waterId uint64) error {
 	water, err := s.waterRepository.Get(ctx, waterId)
 	if err != nil {
-		return errors.Wrap(err, "waterRepository.Get()")
+		return errors.Wrap(err, "waterRepository.Get() failed")
 	}
 
 	if water == nil {
@@ -21,11 +21,11 @@ func (s *waterService) RemoveWater(ctx context.Context, waterId uint64) error {
 
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return errors.Wrap(err, "db.BeginTxx()")
+		return errors.Wrap(err, "db.BeginTxx() failed")
 	}
 
 	if err := s.waterRepository.Remove(ctx, waterId); err != nil {
-		return errors.Wrap(err, "waterRepository.Remove()")
+		return errors.Wrap(err, "waterRepository.Remove() failed")
 	}
 
 	ts := time.Now().UTC()
@@ -38,13 +38,13 @@ func (s *waterService) RemoveWater(ctx context.Context, waterId uint64) error {
 	}
 	if err := s.waterEventRepository.Add(ctx, []model.WaterEvent{waterEvent}); err != nil {
 		if err := tx.Rollback(); err != nil {
-			return errors.Wrap(err, "tx.Rollback()")
+			return errors.Wrap(err, "tx.Rollback() failed")
 		}
-		return errors.Wrap(err, "waterEventRepository.Add()")
+		return errors.Wrap(err, "waterEventRepository.Add() failed")
 	}
 
 	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "tx.Commit()")
+		return errors.Wrap(err, "tx.Commit() failed")
 	}
 
 	return nil

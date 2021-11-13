@@ -5,6 +5,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 
 	"github.com/ozonmp/est-water-api/internal/database"
 	"github.com/ozonmp/est-water-api/internal/model"
@@ -38,19 +39,19 @@ func (r *repo) Get(ctx context.Context, waterId uint64) (*model.Water, error) {
 
 	queryText, queryArgs, err := query.ToSql()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "query.ToSql() failed")
 	}
 
 	rows, err := r.db.QueryxContext(ctx, queryText, queryArgs...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "db.QueryxContext() failed")
 	}
 	defer rows.Close()
 
 	var water model.Water
 	for rows.Next() {
 		if err = rows.StructScan(&water); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "rows.StructScan() failed")
 		}
 	}
 
@@ -70,7 +71,7 @@ func (r *repo) Create(ctx context.Context, water *model.Water) error {
 		RunWith(r.db)
 
 	if err := query.QueryRowContext(ctx).Scan(&water.Id); err != nil {
-		return err
+		return errors.Wrap(err, "query.Scan() failed")
 	}
 
 	return nil
@@ -87,20 +88,20 @@ func (r *repo) List(ctx context.Context, limit uint64, offset uint64) ([]model.W
 
 	queryText, queryArgs, err := query.ToSql()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "query.ToSql() failed")
 	}
 
 	var res []model.Water
 	rows, err := r.db.QueryxContext(ctx, queryText, queryArgs...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "db.QueryxContext() failed")
 	}
 	defer rows.Close()
 
 	var water model.Water
 	for rows.Next() {
 		if err = rows.StructScan(&water); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "rows.StructScan() failed")
 		}
 		res = append(res, water)
 	}
@@ -112,15 +113,11 @@ func (r *repo) Remove(ctx context.Context, waterId uint64) error {
 	query := database.StatementBuilder.
 		Update(waterTableName).
 		Set("delete_status", true).
-		Where(sq.Eq{"id": waterId})
+		Where(sq.Eq{"id": waterId}).
+		RunWith(r.db)
 
-	queryText, queryArgs, err := query.ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = r.db.ExecContext(ctx, queryText, queryArgs...)
-	return err
+	_, err := query.ExecContext(ctx)
+	return errors.Wrap(err, "query.ExecContext() failed")
 }
 
 func (r *repo) Update(ctx context.Context, water *model.Water) error {
@@ -135,11 +132,6 @@ func (r *repo) Update(ctx context.Context, water *model.Water) error {
 		Where(sq.Eq{"id": water.Id}).
 		RunWith(r.db)
 
-	queryText, queryArgs, err := query.ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = r.db.ExecContext(ctx, queryText, queryArgs...)
-	return err
+	_, err := query.ExecContext(ctx)
+	return errors.Wrap(err, "query.ExecContext() failed")
 }

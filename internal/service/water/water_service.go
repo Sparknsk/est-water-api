@@ -2,8 +2,15 @@ package water_service
 
 import (
 	"context"
+	"errors"
+
 	"github.com/jmoiron/sqlx"
+
 	"github.com/ozonmp/est-water-api/internal/model"
+)
+
+var (
+	WaterNotFound = errors.New("water entity not found")
 )
 
 //go:generate mockgen -destination=../../mocks/service_mock.go -package=mocks github.com/ozonmp/est-water-api/internal/service/water Service

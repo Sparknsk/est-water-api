@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,16 +17,14 @@ func (w *waterAPI) ListWatersV1(
 ) (*pb.ListWatersV1Response, error) {
 
 	if err := req.Validate(); err != nil {
-		log.Error().Err(err).Msg("ListWatersV1 - invalid argument")
-
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	waters, err := w.waterService.ListWaters(ctx, req.Limit, req.Offset)
 	if err != nil {
-		log.Error().Err(err).Msg("ListWatersV1 -- failed")
+		log.Error().Err(errors.Wrap(err, "ListWatersV1() failed")).Msg("ListWatersV1() unable to list")
 
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, "unable to list water entity")
 	}
 
 	var watersPb []*pb.Water

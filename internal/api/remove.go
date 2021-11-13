@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,15 +17,13 @@ func (w *waterAPI) RemoveWaterV1(
 ) (*pb.RemoveWaterV1Response, error) {
 
 	if err := req.Validate(); err != nil {
-		log.Error().Err(err).Msg("RemoveWaterV1 - invalid argument")
-
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	if err := w.waterService.RemoveWater(ctx, req.WaterId); err != nil {
-		log.Error().Err(err).Msg("RemoveWaterV1 -- failed")
+		log.Error().Err(errors.Wrap(err, "RemoveWaterV1() failed")).Msg("RemoveWaterV1() unable to remove")
 
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, "unable to remove water entity")
 	}
 
 	return &pb.RemoveWaterV1Response{}, nil

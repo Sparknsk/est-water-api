@@ -8,6 +8,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 
 	"github.com/ozonmp/est-water-api/internal/database"
 	"github.com/ozonmp/est-water-api/internal/model"
@@ -50,9 +51,13 @@ func (er *eventRepo) Lock(ctx context.Context, n uint64) ([]model.WaterEvent, er
 		Suffix("FROM cte WHERE we.id = cte.id RETURNING we.*").
 		ToSql()
 
+	if err != nil {
+		return nil, errors.Wrap(err, "query.ToSql() failed")
+	}
+
 	rows, err := er.db.QueryxContext(ctx, queryText, queryArgs...)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "db.QueryxContext() failed")
 	}
 	defer rows.Close()
 
@@ -60,7 +65,7 @@ func (er *eventRepo) Lock(ctx context.Context, n uint64) ([]model.WaterEvent, er
 	for rows.Next() {
 		var waterEvent model.WaterEvent
 		if err = rows.StructScan(&waterEvent); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "rows.StructScan() failed")
 		}
 		waterEvents = append(waterEvents, waterEvent)
 	}
@@ -77,31 +82,21 @@ func (er *eventRepo) Unlock(ctx context.Context, eventIDs []uint64) (err error) 
 		Update(waterEventTableName).
 		Set("status", "unlock").
 		Set("updated_at", time.Now().UTC()).
-		Where(sq.Eq{"id": eventIDs})
+		Where(sq.Eq{"id": eventIDs}).
+		RunWith(er.db)
 
-	queryText, queryArgs, err := query.ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = er.db.ExecContext(ctx, queryText, queryArgs...)
-
-	return err
+	_, err = query.ExecContext(ctx)
+	return errors.Wrap(err, "db.ExecContext() failed")
 }
 
 func (er *eventRepo) Remove(ctx context.Context, eventIDs []uint64) error {
 	query := database.StatementBuilder.
 		Delete(waterEventTableName).
-		Where(sq.Eq{"id": eventIDs})
+		Where(sq.Eq{"id": eventIDs}).
+		RunWith(er.db)
 
-	queryText, queryArgs, err := query.ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = er.db.ExecContext(ctx, queryText, queryArgs...)
-
-	return err
+	_, err := query.ExecContext(ctx)
+	return errors.Wrap(err, "db.ExecContext() failed")
 }
 
 func (er *eventRepo) Add(ctx context.Context, events []model.WaterEvent) error {
@@ -113,12 +108,6 @@ func (er *eventRepo) Add(ctx context.Context, events []model.WaterEvent) error {
 		query = query.Values(event.WaterId, event.Type, event.Status, event.Entity, event.CreatedAt)
 	}
 
-	queryText, queryArgs, err := query.RunWith(er.db).ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = er.db.ExecContext(ctx, queryText, queryArgs...)
-
-	return nil
+	_, err := query.RunWith(er.db).ExecContext(ctx)
+	return errors.Wrap(err, "db.ExecContext() failed")
 }

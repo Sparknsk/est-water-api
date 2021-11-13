@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,16 +17,14 @@ func (w *waterAPI) CreateWaterV1 (
 ) (*pb.CreateWaterV1Response, error) {
 
 	if err := req.Validate(); err != nil {
-		log.Error().Err(err).Msg("CreateWaterV1 - invalid argument")
-
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	water, err := w.waterService.CreateWater(ctx, req.Name, req.Model, req.Manufacturer, req.Material, req.Speed)
 	if err != nil {
-		log.Error().Err(err).Msg("CreateWaterV1 -- failed")
+		log.Error().Err(errors.Wrap(err, "CreateWaterV1() failed")).Msg("CreateWaterV1() unable to create")
 
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, "unable to create water entity")
 	}
 
 	return &pb.CreateWaterV1Response{
