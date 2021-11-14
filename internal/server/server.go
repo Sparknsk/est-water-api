@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -34,26 +35,28 @@ import (
 
 // GrpcServer is gRPC server
 type GrpcServer struct {
-	db        *sqlx.DB
+	cfg *config.Config
+	db *sqlx.DB
 	batchSize uint
 }
 
 // NewGrpcServer returns gRPC server with supporting of batch listing
-func NewGrpcServer(db *sqlx.DB, batchSize uint) *GrpcServer {
+func NewGrpcServer(cfg *config.Config, db *sqlx.DB, batchSize uint) *GrpcServer {
 	return &GrpcServer{
-		db:        db,
+		cfg: cfg,
+		db: db,
 		batchSize: batchSize,
 	}
 }
 
 // Start method runs server
-func (s *GrpcServer) Start(cfg *config.Config) error {
+func (s *GrpcServer) Start() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	gatewayAddr := fmt.Sprintf("%s:%v", cfg.Rest.Host, cfg.Rest.Port)
-	grpcAddr := fmt.Sprintf("%s:%v", cfg.Grpc.Host, cfg.Grpc.Port)
-	metricsAddr := fmt.Sprintf("%s:%v", cfg.Metrics.Host, cfg.Metrics.Port)
+	gatewayAddr := fmt.Sprintf("%s:%v", s.cfg.Rest.Host, s.cfg.Rest.Port)
+	grpcAddr := fmt.Sprintf("%s:%v", s.cfg.Grpc.Host, s.cfg.Grpc.Port)
+	metricsAddr := fmt.Sprintf("%s:%v", s.cfg.Metrics.Host, s.cfg.Metrics.Port)
 
 	gatewayServer := createGatewayServer(grpcAddr, gatewayAddr)
 
@@ -67,7 +70,7 @@ func (s *GrpcServer) Start(cfg *config.Config) error {
 		}
 	}()
 
-	metricsServer := createMetricsServer(cfg)
+	metricsServer := createMetricsServer(s.cfg)
 
 	go func() {
 		logger.InfoKV(ctx, fmt.Sprintf("Metrics server is running on %s", metricsAddr))
@@ -82,10 +85,10 @@ func (s *GrpcServer) Start(cfg *config.Config) error {
 	isReady := &atomic.Value{}
 	isReady.Store(false)
 
-	statusServer := createStatusServer(cfg, isReady)
+	statusServer := createStatusServer(s.cfg, isReady)
 
 	go func() {
-		statusAdrr := fmt.Sprintf("%s:%v", cfg.Status.Host, cfg.Status.Port)
+		statusAdrr := fmt.Sprintf("%s:%v", s.cfg.Status.Host, s.cfg.Status.Port)
 		logger.InfoKV(ctx, fmt.Sprintf("Status server is running on %s", statusAdrr))
 		if err := statusServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.ErrorKV(ctx, "Failed running starus server",
@@ -102,16 +105,17 @@ func (s *GrpcServer) Start(cfg *config.Config) error {
 
 	grpcServer := grpc.NewServer(
 		grpc.KeepaliveParams(keepalive.ServerParameters{
-			MaxConnectionIdle: time.Duration(cfg.Grpc.MaxConnectionIdle) * time.Minute,
-			Timeout:           time.Duration(cfg.Grpc.Timeout) * time.Second,
-			MaxConnectionAge:  time.Duration(cfg.Grpc.MaxConnectionAge) * time.Minute,
-			Time:              time.Duration(cfg.Grpc.Timeout) * time.Minute,
+			MaxConnectionIdle: time.Duration(s.cfg.Grpc.MaxConnectionIdle) * time.Minute,
+			Timeout:           time.Duration(s.cfg.Grpc.Timeout) * time.Second,
+			MaxConnectionAge:  time.Duration(s.cfg.Grpc.MaxConnectionAge) * time.Minute,
+			Time:              time.Duration(s.cfg.Grpc.Timeout) * time.Minute,
 		}),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_prometheus.UnaryServerInterceptor,
 			grpc_opentracing.UnaryServerInterceptor(),
 			grpcrecovery.UnaryServerInterceptor(),
+			s.loggerLevelInterceptor,
 		)),
 	)
 
@@ -138,7 +142,7 @@ func (s *GrpcServer) Start(cfg *config.Config) error {
 		logger.InfoKV(ctx, "The service is ready to accept requests")
 	}()
 
-	if cfg.Project.Debug {
+	if s.cfg.Logging.IsDebug() {
 		reflection.Register(grpcServer)
 	}
 
@@ -182,4 +186,26 @@ func (s *GrpcServer) Start(cfg *config.Config) error {
 	logger.InfoKV(ctx, "grpcServer shut down correctly")
 
 	return nil
+}
+
+func (s *GrpcServer) loggerLevelInterceptor(
+	ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler,) (interface{}, error) {
+
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		levels := md.Get(s.cfg.Logging.HeaderNameForRequestLevel)
+		if len(levels) > 0 {
+			if newLogLevel, ok := logger.LevelFromString(levels[0]); ok {
+				logger.InfoKV(ctx, fmt.Sprintf("Set %s log level for request", levels[0]))
+
+				newLogger := logger.CloneWithLevel(ctx, newLogLevel)
+				ctx = logger.AttachLogger(ctx, newLogger)
+			}
+		}
+	}
+
+	return handler(ctx, req)
 }

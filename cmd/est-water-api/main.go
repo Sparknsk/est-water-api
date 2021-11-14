@@ -35,7 +35,7 @@ func main() {
 	logger.InfoKV(ctx, fmt.Sprintf("Starting service: %s", cfg.Project.Name),
 		"version", cfg.Project.Version,
 		"commitHash", cfg.Project.CommitHash,
-		"debug", cfg.Project.Debug,
+		"debug", cfg.Logging.IsDebug(),
 		"environment", cfg.Project.Environment,
 		"Starting service: %s", cfg.Project.Name,
 	)

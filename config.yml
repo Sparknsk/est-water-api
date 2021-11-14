@@ -1,6 +1,5 @@
 project:
   name: Ozon Code Platform Est Water API
-  debug: true
   environment: development
 
 grpc:
@@ -32,7 +31,7 @@ status:
   versionPath: /version
 
 database:
-  host: postgres
+  host: 0.0.0.0
   port: 5432
   user: docker
   password: docker
@@ -51,3 +50,7 @@ kafka:
 
 telemetry:
   graylogPath: 0.0.0.0:12201
+
+logging:
+  level: "debug"
+  headerNameForRequestLevel: "x-req-log-level"

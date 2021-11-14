@@ -41,7 +41,7 @@ func main() {
 	logger.InfoKV(ctx, fmt.Sprintf("Starting service: %s", cfg.Project.Name),
 		"version", cfg.Project.Version,
 		"commitHash", cfg.Project.CommitHash,
-		"debug", cfg.Project.Debug,
+		"debug", cfg.Logging.IsDebug(),
 		"environment", cfg.Project.Environment,
 		"Starting service: %s", cfg.Project.Name,
 	)
@@ -77,7 +77,7 @@ func main() {
 	}
 	defer tracing.Close()
 
-	if err := server.NewGrpcServer(db, batchSize).Start(&cfg); err != nil {
+	if err := server.NewGrpcServer(&cfg, db, batchSize).Start(); err != nil {
 		logger.FatalKV(ctx, "Failed creating gRPC server", "err", err)
 
 		return

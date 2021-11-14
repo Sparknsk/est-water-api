@@ -51,7 +51,7 @@ func versionHandler(cfg *config.Config) func(w http.ResponseWriter, _ *http.Requ
 
 		data := map[string]interface{}{
 			"name":        cfg.Project.Name,
-			"debug":       cfg.Project.Debug,
+			"debug":       cfg.Logging.IsDebug(),
 			"environment": cfg.Project.Environment,
 			"version":     cfg.Project.Version,
 			"commitHash":  cfg.Project.CommitHash,

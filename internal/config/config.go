@@ -95,6 +95,18 @@ type Telemetry struct {
 	GraylogPath string `yaml:"graylogPath"`
 }
 
+type Logging struct {
+	Level                     string `yaml:"level"`
+	HeaderNameForRequestLevel string `yaml:"headerNameForRequestLevel"`
+}
+
+func (l *Logging) IsDebug() bool {
+	if l.Level == "debug" {
+		return true
+	}
+	return false
+}
+
 // Config - contains all configuration parameters in config package.
 type Config struct {
 	Project     Project     `yaml:"project"`
@@ -106,6 +118,7 @@ type Config struct {
 	Kafka       Kafka       `yaml:"kafka"`
 	Status      Status      `yaml:"status"`
 	Telemetry   Telemetry   `yaml:"telemetry"`
+	Logging     Logging     `yaml:"logging"`
 }
 
 // ReadConfigYML - read configurations from file and init instance Config.

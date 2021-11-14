@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 
 	gelf "github.com/snovichkov/zap-gelf"
 	"go.uber.org/zap"
@@ -57,6 +58,28 @@ func SetLogger(newLogger *zap.SugaredLogger) {
 	globalLogger = newLogger
 }
 
+func CloneWithLevel(ctx context.Context, newLevel zapcore.Level) *zap.SugaredLogger {
+	return fromContext(ctx).
+		Desugar().
+		WithOptions(WithLevel(newLevel)).
+		Sugar()
+}
+
+func LevelFromString(level string) (zapcore.Level, bool) {
+	switch strings.ToLower(level) {
+	case "debug":
+		return zapcore.DebugLevel, true
+	case "info":
+		return zapcore.InfoLevel, true
+	case "warn":
+		return zapcore.WarnLevel, true
+	case "error":
+		return zapcore.ErrorLevel, true
+	default:
+		return zapcore.DebugLevel, false
+	}
+}
+
 func init() {
 	notSugaredLogger, err := zap.NewProduction(zap.AddCallerSkip(1))
 	if err != nil {
@@ -68,8 +91,8 @@ func init() {
 
 func NewLogger(ctx context.Context, cfg config.Config) (sync func()) {
 	loggingLevel := zap.InfoLevel
-	if cfg.Project.Debug {
-		loggingLevel = zap.DebugLevel
+	if cfgLevel, ok := LevelFromString(cfg.Logging.Level); ok {
+		loggingLevel = cfgLevel
 	}
 
 	encoderConfig := zap.NewProductionEncoderConfig()
