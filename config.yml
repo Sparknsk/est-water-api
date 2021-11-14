@@ -53,4 +53,5 @@ telemetry:
 
 logging:
   level: "debug"
-  headerNameForRequestLevel: "x-req-log-level"
+  headerNameForRequestLevel: "x-request-log-level"
+  headerNameForResponseLog: "x-response-log-enabled"

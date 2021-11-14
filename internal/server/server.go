@@ -111,11 +111,12 @@ func (s *GrpcServer) Start() error {
 			Time:              time.Duration(s.cfg.Grpc.Timeout) * time.Minute,
 		}),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			s.requestInterceptor,
+			s.loggerLevelInterceptor,
 			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_prometheus.UnaryServerInterceptor,
 			grpc_opentracing.UnaryServerInterceptor(),
 			grpcrecovery.UnaryServerInterceptor(),
-			s.loggerLevelInterceptor,
 		)),
 	)
 
@@ -188,18 +189,50 @@ func (s *GrpcServer) Start() error {
 	return nil
 }
 
+func (s *GrpcServer) requestInterceptor(
+	ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler,) (interface{}, error) {
+
+	logEnabled := false
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		logEnabledStr := md.Get(s.cfg.Logging.HeaderNameForResponseLog)
+		if len(logEnabledStr) > 0 {
+			logEnabled = true
+		}
+	}
+
+	var res interface{}
+	var err error
+	if logEnabled {
+		reqDebug := fmt.Sprintf("Request: Method - %s, Data - %v", info.FullMethod, req)
+
+		res, err = handler(ctx, req)
+
+		if err != nil {
+			logger.InfoKV(ctx, fmt.Sprintf("%v | Response with error: %v", reqDebug, err))
+		} else {
+			logger.InfoKV(ctx, fmt.Sprintf("%v | Response with success: %v", reqDebug, res))
+		}
+	} else {
+		res, err = handler(ctx, req)
+	}
+
+	return res, err
+}
+
 func (s *GrpcServer) loggerLevelInterceptor(
 	ctx context.Context,
 	req interface{},
 	info *grpc.UnaryServerInfo,
 	handler grpc.UnaryHandler,) (interface{}, error) {
 
-	md, ok := metadata.FromIncomingContext(ctx)
-	if ok {
-		levels := md.Get(s.cfg.Logging.HeaderNameForRequestLevel)
-		if len(levels) > 0 {
-			if newLogLevel, ok := logger.LevelFromString(levels[0]); ok {
-				logger.InfoKV(ctx, fmt.Sprintf("Set %s log level for request", levels[0]))
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		levelStr := md.Get(s.cfg.Logging.HeaderNameForRequestLevel)
+		if len(levelStr) > 0 {
+			if newLogLevel, ok := logger.LevelFromString(levelStr[0]); ok {
+				logger.InfoKV(ctx, fmt.Sprintf("Set %s log level for request", levelStr[0]))
 
 				newLogger := logger.CloneWithLevel(ctx, newLogLevel)
 				ctx = logger.AttachLogger(ctx, newLogger)

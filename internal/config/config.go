@@ -98,6 +98,7 @@ type Telemetry struct {
 type Logging struct {
 	Level                     string `yaml:"level"`
 	HeaderNameForRequestLevel string `yaml:"headerNameForRequestLevel"`
+	HeaderNameForResponseLog  string `yaml:"headerNameForResponseLog"`
 }
 
 func (l *Logging) IsDebug() bool {
