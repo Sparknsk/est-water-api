@@ -27,7 +27,9 @@ require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/Masterminds/squirrel v1.5.1
 	github.com/pkg/errors v0.9.1
+	github.com/snovichkov/zap-gelf v1.0.1
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
+	go.uber.org/zap v1.13.0
 	google.golang.org/protobuf v1.27.1
 )
 

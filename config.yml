@@ -48,3 +48,6 @@ kafka:
   brokers:
     - "kafka:9092"
     - "localhost:9094"
+
+telemetry:
+  graylogPath: 0.0.0.0:12201
