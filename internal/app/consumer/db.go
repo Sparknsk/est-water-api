@@ -2,11 +2,12 @@ package consumer
 
 import (
 	"context"
-	"log"
+	"github.com/pkg/errors"
 	"sync"
 	"time"
 
 	"github.com/ozonmp/est-water-api/internal/app/repo"
+	"github.com/ozonmp/est-water-api/internal/logger"
 	"github.com/ozonmp/est-water-api/internal/model"
 )
 
@@ -62,7 +63,9 @@ func (c *consumer) Start(ctx context.Context) {
 				case <-ticker.C:
 					events, err := c.repo.Lock(ctx, c.batchSize)
 					if err != nil {
-						log.Printf("EventRepo Lock events error: %v\n", err)
+						logger.ErrorKV(ctx, "consumer lock events failed",
+							"err", errors.Wrap(err, "repo.Lock() failed"),
+						)
 						continue
 					}
 

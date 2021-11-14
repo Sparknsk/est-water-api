@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"errors"
+	"github.com/pkg/errors"
 	"net/http"
 
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
@@ -11,9 +11,9 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
+	"github.com/ozonmp/est-water-api/internal/logger"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
 )
 
@@ -25,6 +25,8 @@ var (
 )
 
 func createGatewayServer(grpcAddr, gatewayAddr string) *http.Server {
+	ctx := context.Background()
+
 	// Create a client connection to the gRPC Server we just started.
 	// This is where the gRPC-Gateway proxies the requests.
 	conn, err := grpc.DialContext(
@@ -38,12 +40,16 @@ func createGatewayServer(grpcAddr, gatewayAddr string) *http.Server {
 		grpc.WithInsecure(),
 	)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to dial server")
+		logger.FatalKV(ctx, "Failed to dial server",
+			"err", errors.Wrap(err, "grpc.DialContext() failed"),
+		)
 	}
 
 	mux := runtime.NewServeMux()
 	if err := pb.RegisterEstWaterApiServiceHandler(context.Background(), mux, conn); err != nil {
-		log.Fatal().Err(err).Msg("Failed registration handler")
+		logger.FatalKV(ctx, "Failed registration handler",
+			"err", errors.Wrap(err, "pb.RegisterEstWaterApiServiceHandler() failed"),
+		)
 	}
 
 	gatewayServer := &http.Server{

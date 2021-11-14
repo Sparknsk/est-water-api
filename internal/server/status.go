@@ -1,13 +1,16 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync/atomic"
 
+	"github.com/pkg/errors"
+
 	"github.com/ozonmp/est-water-api/internal/config"
-	"github.com/rs/zerolog/log"
+	"github.com/ozonmp/est-water-api/internal/logger"
 )
 
 func createStatusServer(cfg *config.Config, isReady *atomic.Value) *http.Server {
@@ -44,6 +47,8 @@ func readinessHandler(isReady *atomic.Value) http.HandlerFunc {
 
 func versionHandler(cfg *config.Config) func(w http.ResponseWriter, _ *http.Request) {
 	return func(w http.ResponseWriter, _ *http.Request) {
+		ctx := context.Background()
+
 		data := map[string]interface{}{
 			"name":        cfg.Project.Name,
 			"debug":       cfg.Project.Debug,
@@ -55,7 +60,9 @@ func versionHandler(cfg *config.Config) func(w http.ResponseWriter, _ *http.Requ
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(data); err != nil {
-			log.Error().Err(err).Msg("Service information encoding error")
+			logger.ErrorKV(ctx, "Service information encoding error",
+				"err", errors.Wrap(err, "json.Encode() failed"),
+			)
 		}
 	}
 }

@@ -3,14 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/ozonmp/est-water-api/internal/app/sender"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 
 	_ "github.com/jackc/pgx/v4"
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -18,8 +14,10 @@ import (
 
 	"github.com/ozonmp/est-water-api/internal/app/repo"
 	"github.com/ozonmp/est-water-api/internal/app/retranslator"
+	"github.com/ozonmp/est-water-api/internal/app/sender"
 	"github.com/ozonmp/est-water-api/internal/config"
 	"github.com/ozonmp/est-water-api/internal/database"
+	"github.com/ozonmp/est-water-api/internal/logger"
 )
 
 func main() {
@@ -27,21 +25,20 @@ func main() {
 	defer cancel()
 
 	if err := config.ReadConfigYML("config.yml"); err != nil {
-		log.Fatal().Err(err).Msg("Failed init configuration")
+		logger.FatalKV(ctx, "Failed init configuration", "err", err)
 	}
 	cfg := config.GetConfigInstance()
 
-	log.Info().
-		Str("version", cfg.Project.Version).
-		Str("commitHash", cfg.Project.CommitHash).
-		Bool("debug", cfg.Project.Debug).
-		Str("environment", cfg.Project.Environment).
-		Msgf("Starting service: %s", cfg.Project.Name)
+	syncLogger := logger.NewLogger(ctx, cfg)
+	defer syncLogger()
 
-	// default: zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	if cfg.Project.Debug {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	}
+	logger.InfoKV(ctx, fmt.Sprintf("Starting service: %s", cfg.Project.Name),
+		"version", cfg.Project.Version,
+		"commitHash", cfg.Project.CommitHash,
+		"debug", cfg.Project.Debug,
+		"environment", cfg.Project.Environment,
+		"Starting service: %s", cfg.Project.Name,
+	)
 
 	dsn := fmt.Sprintf("host=%v port=%v user=%v password=%v dbname=%v sslmode=%v",
 		cfg.Database.Host,
@@ -54,7 +51,7 @@ func main() {
 
 	db, err := database.NewPostgres(ctx, dsn, cfg.Database.Driver)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed init postgres")
+		logger.FatalKV(ctx, "Failed init postgres", "err", err)
 	}
 	defer db.Close()
 

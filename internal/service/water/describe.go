@@ -11,7 +11,7 @@ import (
 func (s *waterService) DescribeWater(ctx context.Context, WaterId uint64) (*model.Water, error) {
 	water, err := s.waterRepository.Get(ctx, WaterId)
 	if err != nil {
-		return nil, errors.Wrap(err, "waterRepository.Get() failed")
+		return nil, errors.Wrapf(err, "waterRepository.Get() failed with id=%d", WaterId)
 	}
 
 	if water == nil {

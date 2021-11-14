@@ -71,7 +71,7 @@ func (r *repo) Create(ctx context.Context, water *model.Water) error {
 		RunWith(r.db)
 
 	if err := query.QueryRowContext(ctx).Scan(&water.Id); err != nil {
-		return errors.Wrap(err, "query.Scan() failed")
+		return errors.Wrap(err, "query.QueryRowContext().Scan() failed")
 	}
 
 	return nil

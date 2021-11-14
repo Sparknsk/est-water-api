@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/ozonmp/est-water-api/internal/logger"
 	"github.com/ozonmp/est-water-api/internal/service/water"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
 )
@@ -19,6 +19,10 @@ func (w *waterAPI) DescribeWaterV1(
 ) (*pb.DescribeWaterV1Response, error) {
 
 	if err := req.Validate(); err != nil {
+		logger.ErrorKV(ctx, "DescribeWaterV1() validation error",
+			"err", errors.Wrapf(err, "req.Validate() failed with %v", req),
+		)
+
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
@@ -30,7 +34,9 @@ func (w *waterAPI) DescribeWaterV1(
 			return nil, status.Error(codes.NotFound, fmt.Sprintf("water entity (id %d) not found", req.WaterId))
 		}
 
-		log.Error().Err(errors.Wrap(err, "DescribeWaterV1() failed")).Msg("DescribeWaterV1() unable to get")
+		logger.ErrorKV(ctx, "DescribeWaterV1() unable to get",
+			"err", errors.Wrapf(err, "waterService.DescribeWater() failed with %v", req),
+		)
 
 		return nil, status.Error(codes.Internal, "unable to get water entity")
 	}

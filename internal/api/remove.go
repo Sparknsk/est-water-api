@@ -2,12 +2,14 @@ package api
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/ozonmp/est-water-api/internal/logger"
+	"github.com/ozonmp/est-water-api/internal/service/water"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
 )
 
@@ -17,11 +19,23 @@ func (w *waterAPI) RemoveWaterV1(
 ) (*pb.RemoveWaterV1Response, error) {
 
 	if err := req.Validate(); err != nil {
+		logger.ErrorKV(ctx, "RemoveWaterV1() validation error",
+			"err", errors.Wrapf(err, "req.Validate() failed with %v", req),
+		)
+
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	if err := w.waterService.RemoveWater(ctx, req.WaterId); err != nil {
-		log.Error().Err(errors.Wrap(err, "RemoveWaterV1() failed")).Msg("RemoveWaterV1() unable to remove")
+		if errors.Is(err, water_service.WaterNotFound) {
+			totalWaterNotFound.Inc()
+
+			return nil, status.Error(codes.NotFound, fmt.Sprintf("water entity (id %d) not found", req.WaterId))
+		}
+
+		logger.ErrorKV(ctx, "RemoveWaterV1() unable to remove",
+			"err", errors.Wrapf(err, "waterService.RemoveWater() failed with %v", req),
+		)
 
 		return nil, status.Error(codes.Internal, "unable to remove water entity")
 	}

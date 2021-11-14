@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/ozonmp/est-water-api/internal/logger"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
 )
 
@@ -17,12 +17,18 @@ func (w *waterAPI) CreateWaterV1 (
 ) (*pb.CreateWaterV1Response, error) {
 
 	if err := req.Validate(); err != nil {
+		logger.ErrorKV(ctx, "CreateWaterV1() validation error",
+			"err", errors.Wrapf(err, "req.Validate() failed with %v", req),
+		)
+
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	water, err := w.waterService.CreateWater(ctx, req.Name, req.Model, req.Manufacturer, req.Material, req.Speed)
 	if err != nil {
-		log.Error().Err(errors.Wrap(err, "CreateWaterV1() failed")).Msg("CreateWaterV1() unable to create")
+		logger.ErrorKV(ctx, "CreateWaterV1() unable to create",
+			"err", errors.Wrapf(err, "waterService.CreateWater() failed with %v", req),
+		)
 
 		return nil, status.Error(codes.Internal, "unable to create water entity")
 	}
