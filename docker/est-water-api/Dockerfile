@@ -1,6 +1,6 @@
 # Builder
 
-ARG GITHUB_PATH=github.com/ozonmp/omp-template-api
+ARG GITHUB_PATH=github.com/ozonmp/est-water-api
 
 FROM golang:1.16-alpine AS builder
 

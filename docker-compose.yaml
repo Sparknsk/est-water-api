@@ -30,7 +30,9 @@ services:
   #    - estnw
 
   est-water-api:
-    build: ./docker/est-water-api
+    build:
+      context: .
+      dockerfile: ./docker/est-water-api/Dockerfile
     restart: unless-stopped
     logging:
       driver: 'gelf'
