@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,6 +12,8 @@ import (
 	_ "github.com/jackc/pgx/v4"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/ozonmp/est-water-api/internal/app/repo"
 	"github.com/ozonmp/est-water-api/internal/app/retranslator"
@@ -24,7 +27,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err := config.ReadConfigYML("config.yml"); err != nil {
+	if err := config.ReadConfigYML("retranslator-config.yml"); err != nil {
 		logger.FatalKV(ctx, "Failed init configuration", "err", err)
 	}
 	cfg := config.GetConfigInstance()
@@ -55,15 +58,34 @@ func main() {
 	}
 	defer db.Close()
 
+	mux := http.DefaultServeMux
+	mux.Handle(cfg.Metrics.Path, promhttp.Handler())
+
+	metricsAddr := fmt.Sprintf("%s:%d", cfg.Metrics.Host, cfg.Metrics.Port)
+	metricsServer := &http.Server{
+		Addr: metricsAddr,
+		Handler: mux,
+	}
+
+	go func() {
+		logger.InfoKV(ctx, fmt.Sprintf("Metrics server is running on %s", metricsAddr))
+		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.ErrorKV(ctx, "Failed running metrics server",
+				"err", errors.Wrap(err, "metricsServer.ListenAndServe() failed"),
+			)
+			cancel()
+		}
+	}()
+
 	cfgRetranslator := retranslator.Config{
-		ChannelSize:   512,
+		ChannelSize: 512,
 
 		ConsumerCount: 10,
-		ConsumeSize:   13,
+		ConsumeSize: 13,
 		ConsumeTimeout: time.Millisecond*1000,
 
 		ProducerCount: 1,
-		WorkerCount:   1,
+		WorkerCount: 1,
 		WorkerBatchSize: 10,
 		WorkerBatchTimeout: time.Millisecond*5000,
 
@@ -77,4 +99,12 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
 	<-sigs
+
+	if err := metricsServer.Shutdown(ctx); err != nil {
+		logger.ErrorKV(ctx, "metricsServer.Shutdown",
+			"err", errors.Wrap(err, "metricsServer.Shutdown() failed"),
+		)
+	} else {
+		logger.InfoKV(ctx, "metricsServer shut down correctly")
+	}
 }

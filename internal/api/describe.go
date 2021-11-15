@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/ozonmp/est-water-api/internal/logger"
+	"github.com/ozonmp/est-water-api/internal/metric"
 	"github.com/ozonmp/est-water-api/internal/service/water"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
 )
@@ -29,7 +30,7 @@ func (w *waterAPI) DescribeWaterV1(
 	water, err := w.waterService.DescribeWater(ctx, req.WaterId)
 	if err != nil {
 		if errors.Is(err, water_service.WaterNotFound) {
-			totalWaterNotFound.Inc()
+			metric.IncTotalWaterNotFound()
 
 			return nil, status.Error(codes.NotFound, fmt.Sprintf("water entity (id %d) not found", req.WaterId))
 		}

@@ -3,5 +3,4 @@
 .venv
 swagger/
 bin/
-data/
 main

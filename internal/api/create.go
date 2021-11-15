@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/ozonmp/est-water-api/internal/logger"
+	"github.com/ozonmp/est-water-api/internal/metric"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
 )
 
@@ -32,6 +33,8 @@ func (w *waterAPI) CreateWaterV1 (
 
 		return nil, status.Error(codes.Internal, "unable to create water entity")
 	}
+
+	metric.IncTotalWaterState(metric.StateCreate)
 
 	return &pb.CreateWaterV1Response{
 		Water: modelWaterToProtobufWater(water),

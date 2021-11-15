@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ozonmp/est-water-api/internal/app/metric"
 	"github.com/ozonmp/est-water-api/internal/app/repo"
 	"github.com/ozonmp/est-water-api/internal/logger"
 	"github.com/ozonmp/est-water-api/internal/model"
@@ -72,6 +73,10 @@ func (c *consumer) Start(ctx context.Context) {
 					for _, event := range events {
 						c.events <- event
 					}
+
+					totalEvents := uint(len(events))
+					metric.AddTotalWaterEventsNow(totalEvents)
+					metric.AddTotalWaterEvents(totalEvents)
 				case <-ctx.Done():
 					ticker.Stop()
 					return

@@ -8,6 +8,7 @@ import (
 	"github.com/gammazero/workerpool"
 	"github.com/pkg/errors"
 
+	"github.com/ozonmp/est-water-api/internal/app/metric"
 	"github.com/ozonmp/est-water-api/internal/app/repo"
 	"github.com/ozonmp/est-water-api/internal/app/sender"
 	"github.com/ozonmp/est-water-api/internal/logger"
@@ -117,6 +118,9 @@ func (p *producer) workerBatchSendUpdate(ctx context.Context, eventIDs *[]uint64
 		for _, id := range *eventIDs {
 			ids = append(ids, id)
 		}
+
+		metric.SubTotalWaterEventsNow(uint(len(ids)))
+
 		p.workerPool.Submit(func() {
 			if err := p.repo.Unlock(ctx, ids); err != nil {
 				logger.ErrorKV(ctx, "producer update failed",
@@ -134,6 +138,9 @@ func (p *producer) workerBatchSendClean(ctx context.Context, eventIDs *[]uint64)
 		for _, id := range *eventIDs {
 			ids = append(ids, id)
 		}
+
+		metric.SubTotalWaterEventsNow(uint(len(ids)))
+
 		p.workerPool.Submit(func() {
 			if err := p.repo.Remove(ctx, ids); err != nil {
 				logger.ErrorKV(ctx, "producer clean failed",
