@@ -4,3 +4,4 @@
 swagger/
 bin/
 main
+docker/grafana/data
