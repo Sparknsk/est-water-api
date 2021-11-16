@@ -15,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -187,58 +186,4 @@ func (s *GrpcServer) Start() error {
 	logger.InfoKV(ctx, "grpcServer shut down correctly")
 
 	return nil
-}
-
-func (s *GrpcServer) requestInterceptor(
-	ctx context.Context,
-	req interface{},
-	info *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler,) (interface{}, error) {
-
-	logEnabled := false
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		logEnabledStr := md.Get(s.cfg.Logging.HeaderNameForResponseLog)
-		if len(logEnabledStr) > 0 {
-			logEnabled = true
-		}
-	}
-
-	var res interface{}
-	var err error
-	if logEnabled {
-		reqDebug := fmt.Sprintf("Request: Method - %s, Data - %v", info.FullMethod, req)
-
-		res, err = handler(ctx, req)
-
-		if err != nil {
-			logger.InfoKV(ctx, fmt.Sprintf("%v | Response with error: %v", reqDebug, err))
-		} else {
-			logger.InfoKV(ctx, fmt.Sprintf("%v | Response with success: %v", reqDebug, res))
-		}
-	} else {
-		res, err = handler(ctx, req)
-	}
-
-	return res, err
-}
-
-func (s *GrpcServer) loggerLevelInterceptor(
-	ctx context.Context,
-	req interface{},
-	info *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler,) (interface{}, error) {
-
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		levelStr := md.Get(s.cfg.Logging.HeaderNameForRequestLevel)
-		if len(levelStr) > 0 {
-			if newLogLevel, ok := logger.LevelFromString(levelStr[0]); ok {
-				logger.InfoKV(ctx, fmt.Sprintf("Set %s log level for request", levelStr[0]))
-
-				newLogger := logger.CloneWithLevel(ctx, newLogLevel)
-				ctx = logger.AttachLogger(ctx, newLogger)
-			}
-		}
-	}
-
-	return handler(ctx, req)
 }
