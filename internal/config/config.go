@@ -71,7 +71,7 @@ type Metrics struct {
 type Jaeger struct {
 	Service string `yaml:"service"`
 	Host    string `yaml:"host"`
-	Port    string `yaml:"port"`
+	Port    int    `yaml:"port"`
 }
 
 // Kafka - contains all parameters kafka information.

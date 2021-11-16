@@ -6,7 +6,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/opentracing/opentracing-go"
 	gelf "github.com/snovichkov/zap-gelf"
+	"github.com/uber/jaeger-client-go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -25,6 +27,13 @@ func fromContext(ctx context.Context) *zap.SugaredLogger {
 		result = attachedLogger
 	} else {
 		result = globalLogger
+	}
+
+	jaegerSpan := opentracing.SpanFromContext(ctx)
+	if jaegerSpan != nil {
+		if spanCtx, ok := opentracing.SpanFromContext(ctx).Context().(jaeger.SpanContext); ok {
+			result = result.With("trace-id", spanCtx.TraceID())
+		}
 	}
 
 	return result

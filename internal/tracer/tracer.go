@@ -2,10 +2,11 @@ package tracer
 
 import (
 	"context"
-	"github.com/pkg/errors"
+	"fmt"
 	"io"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/pkg/errors"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 
@@ -16,6 +17,7 @@ import (
 func NewTracer(cfg *config.Config) (io.Closer, error) {
 	ctx := context.Background()
 
+	jaegerAddr := fmt.Sprintf("%s:%d", cfg.Jaeger.Host, cfg.Jaeger.Port)
 	cfgTracer := &jaegercfg.Configuration{
 		ServiceName: cfg.Jaeger.Service,
 		Sampler: &jaegercfg.SamplerConfig{
@@ -24,7 +26,7 @@ func NewTracer(cfg *config.Config) (io.Closer, error) {
 		},
 		Reporter: &jaegercfg.ReporterConfig{
 			LogSpans:           true,
-			LocalAgentHostPort: cfg.Jaeger.Host + cfg.Jaeger.Port,
+			LocalAgentHostPort: jaegerAddr,
 		},
 	}
 	tracer, closer, err := cfgTracer.NewTracer(jaegercfg.Logger(jaeger.StdLogger))

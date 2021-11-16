@@ -20,8 +20,8 @@ metrics:
 
 jaeger:
   service: "est-water-api"
-  host: "jaeger"
-  port: ":6831"
+  host: 0.0.0.0
+  port: 6831
 
 status:
   host: 0.0.0.0

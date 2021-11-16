@@ -4,12 +4,23 @@ import (
 	"context"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 
 	"github.com/ozonmp/est-water-api/internal/model"
 )
 
 func (s *waterService) CreateWater(ctx context.Context, waterName string, waterModel string, waterMaterial string, waterManufacturer string, waterSpeed uint32) (*model.Water, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "waterService.CreateWater()")
+	defer span.Finish()
+	span.LogKV(
+		"event", "service create water",
+		"waterName", waterName,
+		"waterModel", waterModel,
+		"waterMaterial", waterMaterial,
+		"waterManufacturer", waterManufacturer,
+		"waterSpeed", waterSpeed,
+	)
 
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
