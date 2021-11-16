@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -130,7 +131,7 @@ func ReadConfigYML(filePath string) error {
 
 	file, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "os.Open() failed")
 	}
 	defer func() {
 		_ = file.Close()
@@ -138,7 +139,7 @@ func ReadConfigYML(filePath string) error {
 
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(&cfg); err != nil {
-		return err
+		return errors.Wrap(err, "decoder.Decode() failed")
 	}
 
 	cfg.Project.Version = version

@@ -2,6 +2,7 @@ package producer
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -79,7 +80,7 @@ func (p *producer) Start(ctx context.Context) {
 					p.workerBatchSendUpdate(ctx, &workerBatchUpdate)
 					p.workerBatchSendClean(ctx, &workerBatchClean)
 				case event := <-p.events:
-					if err := p.sender.Send(&event); err != nil {
+					if err := p.sender.Send(ctx, &event); err != nil {
 						logger.ErrorKV(ctx, "producer send event failed",
 							"err", errors.Wrapf(err, "sender.Send() failed with %v", event),
 						)
@@ -126,6 +127,8 @@ func (p *producer) workerBatchSendUpdate(ctx context.Context, eventIDs *[]uint64
 				logger.ErrorKV(ctx, "producer update failed",
 					"err", errors.Wrapf(err, "repo.Unlock() failed with ids=%v", ids),
 				)
+			} else {
+				logger.DebugKV(ctx, fmt.Sprintf("Unlocked eventIDs: %v", ids))
 			}
 		})
 		*eventIDs = nil
@@ -146,6 +149,8 @@ func (p *producer) workerBatchSendClean(ctx context.Context, eventIDs *[]uint64)
 				logger.ErrorKV(ctx, "producer clean failed",
 					"err", errors.Wrapf(err, "repo.Remove() failed with ids=%v", ids),
 				)
+			} else {
+				logger.DebugKV(ctx, fmt.Sprintf("Removed eventIDs: %v", ids))
 			}
 		})
 		*eventIDs = nil

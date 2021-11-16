@@ -110,7 +110,7 @@ func TestRetranslator(t *testing.T) {
 				return events[start:stop], nil
 			}).AnyTimes()
 
-			sender.EXPECT().Send(&events[0]).DoAndReturn(func(event *model.WaterEvent) error {
+			sender.EXPECT().Send(ctx, &events[0]).DoAndReturn(func(ctx context.Context, event *model.WaterEvent) error {
 				return nil
 			}).AnyTimes()
 
@@ -152,7 +152,7 @@ func TestRetranslator(t *testing.T) {
 			return events, nil
 		}).AnyTimes()
 
-		sender.EXPECT().Send(gomock.Any()).DoAndReturn(func(event *model.WaterEvent) error {
+		sender.EXPECT().Send(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, event *model.WaterEvent) error {
 			return errors.New("some error")
 		}).AnyTimes()
 

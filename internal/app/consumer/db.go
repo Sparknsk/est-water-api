@@ -2,9 +2,11 @@ package consumer
 
 import (
 	"context"
-	"github.com/pkg/errors"
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/ozonmp/est-water-api/internal/app/metric"
 	"github.com/ozonmp/est-water-api/internal/app/repo"
@@ -70,11 +72,17 @@ func (c *consumer) Start(ctx context.Context) {
 						continue
 					}
 
+					var eventIDs []uint64
 					for _, event := range events {
 						c.events <- event
+						eventIDs = append(eventIDs, event.ID)
 					}
 
-					totalEvents := uint(len(events))
+					if len(eventIDs) > 0 {
+						logger.DebugKV(ctx, fmt.Sprintf("Locked eventIDs: %v", eventIDs))
+					}
+
+					totalEvents := uint(len(eventIDs))
 					metric.AddTotalWaterEventsNow(totalEvents)
 					metric.AddTotalWaterEvents(totalEvents)
 				case <-ctx.Done():

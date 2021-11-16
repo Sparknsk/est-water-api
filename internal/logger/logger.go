@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/pkg/errors"
 	gelf "github.com/snovichkov/zap-gelf"
 	"github.com/uber/jaeger-client-go"
 	"go.uber.org/zap"
@@ -98,7 +99,7 @@ func init() {
 	globalLogger = notSugaredLogger.Sugar()
 }
 
-func NewLogger(ctx context.Context, cfg config.Config) (sync func()) {
+func NewLogger(cfg config.Config) (sync func(), err error) {
 	loggingLevel := zap.InfoLevel
 	if cfgLevel, ok := LevelFromString(cfg.Logging.Level); ok {
 		loggingLevel = cfgLevel
@@ -118,7 +119,7 @@ func NewLogger(ctx context.Context, cfg config.Config) (sync func()) {
 		gelf.Level(loggingLevel),
 	)
 	if err != nil {
-		FatalKV(ctx, "gelf.NewCore() failed", "err", err)
+		return nil, errors.Wrap(err, "gelf.NewCore() failed")
 	}
 
 	logger := zap.New(zapcore.NewTee(core, gelfCore), zap.AddCaller(), zap.AddCallerSkip(1))
@@ -127,5 +128,5 @@ func NewLogger(ctx context.Context, cfg config.Config) (sync func()) {
 
 	return func() {
 		logger.Sync()
-	}
+	}, nil
 }

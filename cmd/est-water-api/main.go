@@ -28,11 +28,18 @@ func main() {
 	defer cancel()
 
 	if err := config.ReadConfigYML("retranslator-config.yml"); err != nil {
-		logger.FatalKV(ctx, "Failed init configuration", "err", err)
+		logger.FatalKV(ctx, "Failed init configuration",
+			"err", errors.Wrap(err, "config.ReadConfigYML() failed"),
+		)
 	}
 	cfg := config.GetConfigInstance()
 
-	syncLogger := logger.NewLogger(ctx, cfg)
+	syncLogger, err := logger.NewLogger(cfg)
+	if err != nil {
+		logger.FatalKV(ctx, "Failed init logger",
+			"err", errors.Wrap(err, "logger.NewLogger() failed"),
+		)
+	}
 	defer syncLogger()
 
 	logger.InfoKV(ctx, fmt.Sprintf("Starting service: %s", cfg.Project.Name),
@@ -54,7 +61,9 @@ func main() {
 
 	db, err := database.NewPostgres(ctx, dsn, cfg.Database.Driver)
 	if err != nil {
-		logger.FatalKV(ctx, "Failed init postgres", "err", err)
+		logger.FatalKV(ctx, "Failed init postgres",
+			"err", errors.Wrap(err, "database.NewPostgres() failed"),
+		)
 	}
 	defer db.Close()
 
@@ -81,12 +90,12 @@ func main() {
 		ChannelSize: 512,
 
 		ConsumerCount: 10,
-		ConsumeSize: 13,
+		ConsumeSize: 3,
 		ConsumeTimeout: time.Millisecond*1000,
 
 		ProducerCount: 1,
 		WorkerCount: 1,
-		WorkerBatchSize: 10,
+		WorkerBatchSize: 4,
 		WorkerBatchTimeout: time.Millisecond*5000,
 
 		Repo: repo.NewEventRepo(db),
