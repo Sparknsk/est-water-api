@@ -9,4 +9,6 @@ RUN go mod download
 COPY . .
 RUN go build ./cmd/est-water-api/main.go
 
+EXPOSE 9101
+
 CMD ["./main"]
