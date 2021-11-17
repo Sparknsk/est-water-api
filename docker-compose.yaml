@@ -48,7 +48,7 @@ services:
       - postgres
       - kafka
     ports:
-      - 8083:8080 # REST
+      - 8083:8083 # REST
       - 8082:8082 # gRPC
       - 9100:9100 # Metrics prometheus
       - 8000:8000 # Status prometheus
@@ -63,6 +63,8 @@ services:
       - swaggerdata:/root/swagger
       - ./migrations:/root/migrations
       - ./config.yml:/root/config.yml
+    extra_hosts:
+      - "postgres:host-gateway"
     #labels:
     #  - "traefik.enable=true"
     #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.scheme=http"
@@ -93,8 +95,12 @@ services:
       - postgres
     links:
       - postgres
+    ports:
+      - 9101:9101 # Metrics prometheus
     networks:
       - estnw
+    extra_hosts:
+      - "postgres:host-gateway"
 
   postgres:
     image: postgres:latest
@@ -215,6 +221,7 @@ services:
       - 16686:16686
     extra_hosts:
       - "est-water-api:host-gateway"
+      - "retranslator:host-gateway"
     networks:
       - estnw
 
@@ -259,6 +266,7 @@ services:
       - transport.host=localhost
       - network.host=0.0.0.0
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - cluster.routing.allocation.disk.threshold_enabled=false
     ulimits:
       memlock:
         soft: -1

@@ -19,8 +19,8 @@ metrics:
   path: /metrics
 
 jaeger:
-  service: "est-water-api"
-  host: 0.0.0.0
+  service: est-water-api
+  host: jaeger
   port: 6831
 
 status:
@@ -31,7 +31,7 @@ status:
   versionPath: /version
 
 database:
-  host: 0.0.0.0
+  host: postgres
   port: 5432
   user: docker
   password: docker
@@ -49,7 +49,7 @@ kafka:
     - "localhost:9094"
 
 telemetry:
-  graylogPath: 0.0.0.0:12201
+  graylogPath: graylog:12201
 
 logging:
   level: "debug"

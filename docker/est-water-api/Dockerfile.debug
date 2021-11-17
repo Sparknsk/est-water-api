@@ -6,7 +6,7 @@ FROM golang:1.16-alpine AS builder
 
 WORKDIR /home/${GITHUB_PATH}
 
-RUN apk add --update make git protoc protobuf protobuf-dev curl
+RUN apk add --update make git protoc protobuf protobuf-dev curl jq
 COPY Makefile Makefile
 RUN make deps-go
 COPY . .
