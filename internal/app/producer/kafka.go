@@ -74,29 +74,29 @@ func (p *producer) Start(ctx context.Context) {
 			for {
 				select {
 				case <-ticker.C:
-					p.workerBatchSendUpdate(&workerBatchUpdate)
-					p.workerBatchSendClean(&workerBatchClean)
+					p.workerBatchSendUpdate(ctx, &workerBatchUpdate)
+					p.workerBatchSendClean(ctx, &workerBatchClean)
 				case event := <-p.events:
 					if err := p.sender.Send(&event); err != nil {
 						log.Printf("EventSender Send event error: %v\n", err)
 
 						workerBatchUpdate = append(workerBatchUpdate, event.ID)
-						if len(workerBatchUpdate) == int(p.workerBatchSize) {
+						if len(workerBatchUpdate) >= int(p.workerBatchSize) {
 							ticker.Reset(p.workerBatchTimeout)
-							p.workerBatchSendUpdate(&workerBatchUpdate)
+							p.workerBatchSendUpdate(ctx, &workerBatchUpdate)
 						}
 					} else {
 						workerBatchClean = append(workerBatchClean, event.ID)
-						if len(workerBatchClean) == int(p.workerBatchSize) {
+						if len(workerBatchClean) >= int(p.workerBatchSize) {
 							ticker.Reset(p.workerBatchTimeout)
-							p.workerBatchSendClean(&workerBatchClean)
+							p.workerBatchSendClean(ctx, &workerBatchClean)
 						}
 					}
 				case <-ctx.Done():
 					ticker.Stop()
-					p.workerBatchSendUpdate(&workerBatchUpdate)
-					p.workerBatchSendClean(&workerBatchClean)
-					p.clearUnsentEvents()
+					p.workerBatchSendUpdate(ctx, &workerBatchUpdate)
+					p.workerBatchSendClean(ctx, &workerBatchClean)
+					p.clearUnsentEvents(ctx)
 					return
 				}
 			}
@@ -108,14 +108,14 @@ func (p *producer) Close() {
 	p.wg.Wait()
 }
 
-func (p *producer) workerBatchSendUpdate(eventIDs *[]uint64) {
+func (p *producer) workerBatchSendUpdate(ctx context.Context, eventIDs *[]uint64) {
 	if len(*eventIDs) > 0 {
 		var ids []uint64
 		for _, id := range *eventIDs {
 			ids = append(ids, id)
 		}
 		p.workerPool.Submit(func() {
-			if err := p.repo.Unlock(ids); err != nil {
+			if err := p.repo.Unlock(ctx, ids); err != nil {
 				log.Printf("EventRepo Unlock events error: %v\n", err)
 			}
 		})
@@ -123,14 +123,14 @@ func (p *producer) workerBatchSendUpdate(eventIDs *[]uint64) {
 	}
 }
 
-func (p *producer) workerBatchSendClean(eventIDs *[]uint64) {
+func (p *producer) workerBatchSendClean(ctx context.Context, eventIDs *[]uint64) {
 	if len(*eventIDs) > 0 {
 		var ids []uint64
 		for _, id := range *eventIDs {
 			ids = append(ids, id)
 		}
 		p.workerPool.Submit(func() {
-			if err := p.repo.Remove(ids); err != nil {
+			if err := p.repo.Remove(ctx, ids); err != nil {
 				log.Printf("EventRepo Remove events error: %v\n", err)
 			}
 		})
@@ -138,7 +138,7 @@ func (p *producer) workerBatchSendClean(eventIDs *[]uint64) {
 	}
 }
 
-func (p *producer) clearUnsentEvents() {
+func (p *producer) clearUnsentEvents(ctx context.Context) {
 	eventsLength := len(p.events)
 
 	if eventsLength > 0 {
@@ -147,9 +147,9 @@ func (p *producer) clearUnsentEvents() {
 			eventIDs = append(eventIDs, event.ID)
 
 			if len(eventIDs) == int(p.workerBatchSize) {
-				p.workerBatchSendClean(&eventIDs)
+				p.workerBatchSendClean(ctx, &eventIDs)
 			}
 		}
-		p.workerBatchSendClean(&eventIDs)
+		p.workerBatchSendClean(ctx, &eventIDs)
 	}
 }

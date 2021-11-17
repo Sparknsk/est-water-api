@@ -2,8 +2,8 @@ package api
 
 import (
 	"context"
-	"github.com/ozonmp/est-water-api/internal/model"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,27 +17,15 @@ func (w *waterAPI) CreateWaterV1 (
 ) (*pb.CreateWaterV1Response, error) {
 
 	if err := req.Validate(); err != nil {
-		log.Error().Err(err).Msg("CreateWaterV1 - invalid argument")
-
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	water := model.NewWater(
-		uint64(1),
-		req.Name,
-		req.Model,
-		req.Manufacturer,
-		req.Material,
-		req.Speed,
-	)
+	water, err := w.waterService.CreateWater(ctx, req.Name, req.Model, req.Manufacturer, req.Material, req.Speed)
+	if err != nil {
+		log.Error().Err(errors.Wrap(err, "CreateWaterV1() failed")).Msg("CreateWaterV1() unable to create")
 
-	if err := w.repo.CreateWater(ctx, water); err != nil {
-		log.Error().Err(err).Msg("CreateWaterV1 -- failed")
-
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, "unable to create water entity")
 	}
-
-	log.Debug().Msg("CreateWaterV1 - success")
 
 	return &pb.CreateWaterV1Response{
 		Water: modelWaterToProtobufWater(water),

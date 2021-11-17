@@ -26,6 +26,8 @@ type EstWaterApiServiceClient interface {
 	ListWatersV1(ctx context.Context, in *ListWatersV1Request, opts ...grpc.CallOption) (*ListWatersV1Response, error)
 	// RemoveWaterV1 - Remove a water autotransport
 	RemoveWaterV1(ctx context.Context, in *RemoveWaterV1Request, opts ...grpc.CallOption) (*RemoveWaterV1Response, error)
+	// UpdateWaterV1 - Update a water autotransport
+	UpdateWaterV1(ctx context.Context, in *UpdateWaterV1Request, opts ...grpc.CallOption) (*UpdateWaterV1Response, error)
 }
 
 type estWaterApiServiceClient struct {
@@ -72,6 +74,15 @@ func (c *estWaterApiServiceClient) RemoveWaterV1(ctx context.Context, in *Remove
 	return out, nil
 }
 
+func (c *estWaterApiServiceClient) UpdateWaterV1(ctx context.Context, in *UpdateWaterV1Request, opts ...grpc.CallOption) (*UpdateWaterV1Response, error) {
+	out := new(UpdateWaterV1Response)
+	err := c.cc.Invoke(ctx, "/ozonmp.est_water_api.v1.EstWaterApiService/UpdateWaterV1", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // EstWaterApiServiceServer is the server API for EstWaterApiService service.
 // All implementations must embed UnimplementedEstWaterApiServiceServer
 // for forward compatibility
@@ -84,6 +95,8 @@ type EstWaterApiServiceServer interface {
 	ListWatersV1(context.Context, *ListWatersV1Request) (*ListWatersV1Response, error)
 	// RemoveWaterV1 - Remove a water autotransport
 	RemoveWaterV1(context.Context, *RemoveWaterV1Request) (*RemoveWaterV1Response, error)
+	// UpdateWaterV1 - Update a water autotransport
+	UpdateWaterV1(context.Context, *UpdateWaterV1Request) (*UpdateWaterV1Response, error)
 	mustEmbedUnimplementedEstWaterApiServiceServer()
 }
 
@@ -102,6 +115,9 @@ func (UnimplementedEstWaterApiServiceServer) ListWatersV1(context.Context, *List
 }
 func (UnimplementedEstWaterApiServiceServer) RemoveWaterV1(context.Context, *RemoveWaterV1Request) (*RemoveWaterV1Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveWaterV1 not implemented")
+}
+func (UnimplementedEstWaterApiServiceServer) UpdateWaterV1(context.Context, *UpdateWaterV1Request) (*UpdateWaterV1Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateWaterV1 not implemented")
 }
 func (UnimplementedEstWaterApiServiceServer) mustEmbedUnimplementedEstWaterApiServiceServer() {}
 
@@ -188,6 +204,24 @@ func _EstWaterApiService_RemoveWaterV1_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EstWaterApiService_UpdateWaterV1_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateWaterV1Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EstWaterApiServiceServer).UpdateWaterV1(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ozonmp.est_water_api.v1.EstWaterApiService/UpdateWaterV1",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EstWaterApiServiceServer).UpdateWaterV1(ctx, req.(*UpdateWaterV1Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // EstWaterApiService_ServiceDesc is the grpc.ServiceDesc for EstWaterApiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -210,6 +244,10 @@ var EstWaterApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemoveWaterV1",
 			Handler:    _EstWaterApiService_RemoveWaterV1_Handler,
+		},
+		{
+			MethodName: "UpdateWaterV1",
+			Handler:    _EstWaterApiService_UpdateWaterV1_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

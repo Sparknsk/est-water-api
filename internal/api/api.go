@@ -2,9 +2,10 @@ package api
 
 import (
 	"context"
+
 	"github.com/ozonmp/est-water-api/internal/model"
-	"github.com/ozonmp/est-water-api/internal/repo"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -17,22 +18,21 @@ var (
 	})
 )
 
-//go:generate mockgen -destination=../mocks/api_repo_mock.go -package=mocks github.com/ozonmp/est-water-api/internal/repo Repo
-type Repo interface {
-	DescribeWater(ctx context.Context, waterID uint64) (*model.Water, error)
-	CreateWater(ctx context.Context, water *model.Water) error
-	ListWaters(ctx context.Context) ([]model.Water, error)
-	RemoveWater(ctx context.Context, waterID uint64) error
+type Service interface {
+	DescribeWater(ctx context.Context, waterId uint64) (*model.Water, error)
+	CreateWater(ctx context.Context, waterName string, waterModel string, waterMaterial string, waterManufacturer string, waterSpeed uint32) (*model.Water, error)
+	ListWaters(ctx context.Context, limit uint64, offset uint64) ([]model.Water, error)
+	RemoveWater(ctx context.Context, waterId uint64) error
+	UpdateWater(ctx context.Context, waterId uint64, waterName string, waterSpeed uint32) (*model.Water, error)
 }
 
 type waterAPI struct {
 	pb.UnimplementedEstWaterApiServiceServer
-	repo repo.Repo
+	waterService Service
 }
 
-// NewWaterAPI returns api of est-water-api service
-func NewWaterAPI(r repo.Repo) pb.EstWaterApiServiceServer {
-	return &waterAPI{repo: r}
+func NewWaterAPI(waterService Service) pb.EstWaterApiServiceServer {
+	return &waterAPI{waterService: waterService}
 }
 
 func modelWaterToProtobufWater(water *model.Water) *pb.Water {
@@ -43,5 +43,6 @@ func modelWaterToProtobufWater(water *model.Water) *pb.Water {
 		Manufacturer: water.Manufacturer,
 		Material: water.Material,
 		Speed: water.Speed,
+		CreatedAt: timestamppb.New(*water.CreatedAt),
 	}
 }

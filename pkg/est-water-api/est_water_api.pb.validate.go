@@ -52,6 +52,16 @@ func (m *Water) Validate() error {
 
 	// no validation rules for Speed
 
+	if v, ok := interface{}(m.GetCreatedAt()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return WaterValidationError{
+				field:  "CreatedAt",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -108,6 +118,108 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = WaterValidationError{}
+
+// Validate checks the field values on WaterEvent with the rules defined in the
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *WaterEvent) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	// no validation rules for Id
+
+	// no validation rules for WaterId
+
+	// no validation rules for Type
+
+	// no validation rules for Status
+
+	if v, ok := interface{}(m.GetEntity()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return WaterEventValidationError{
+				field:  "Entity",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetCreatedAt()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return WaterEventValidationError{
+				field:  "CreatedAt",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetUpdatedAt()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return WaterEventValidationError{
+				field:  "UpdatedAt",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	return nil
+}
+
+// WaterEventValidationError is the validation error returned by
+// WaterEvent.Validate if the designated constraints aren't met.
+type WaterEventValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e WaterEventValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e WaterEventValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e WaterEventValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e WaterEventValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e WaterEventValidationError) ErrorName() string { return "WaterEventValidationError" }
+
+// Error satisfies the builtin error interface
+func (e WaterEventValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sWaterEvent.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = WaterEventValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = WaterEventValidationError{}
 
 // Validate checks the field values on CreateWaterV1Request with the rules
 // defined in the proto definition for this message. If any rules are
@@ -447,6 +559,20 @@ func (m *ListWatersV1Request) Validate() error {
 		return nil
 	}
 
+	if val := m.GetLimit(); val <= 0 || val > 50 {
+		return ListWatersV1RequestValidationError{
+			field:  "Limit",
+			reason: "value must be inside range (0, 50]",
+		}
+	}
+
+	if m.GetOffset() < 0 {
+		return ListWatersV1RequestValidationError{
+			field:  "Offset",
+			reason: "value must be greater than or equal to 0",
+		}
+	}
+
 	return nil
 }
 
@@ -728,3 +854,168 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = RemoveWaterV1ResponseValidationError{}
+
+// Validate checks the field values on UpdateWaterV1Request with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *UpdateWaterV1Request) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if m.GetWaterId() <= 0 {
+		return UpdateWaterV1RequestValidationError{
+			field:  "WaterId",
+			reason: "value must be greater than 0",
+		}
+	}
+
+	if l := utf8.RuneCountInString(m.GetName()); l < 3 || l > 50 {
+		return UpdateWaterV1RequestValidationError{
+			field:  "Name",
+			reason: "value length must be between 3 and 50 runes, inclusive",
+		}
+	}
+
+	if val := m.GetSpeed(); val <= 0 || val > 1000 {
+		return UpdateWaterV1RequestValidationError{
+			field:  "Speed",
+			reason: "value must be inside range (0, 1000]",
+		}
+	}
+
+	return nil
+}
+
+// UpdateWaterV1RequestValidationError is the validation error returned by
+// UpdateWaterV1Request.Validate if the designated constraints aren't met.
+type UpdateWaterV1RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UpdateWaterV1RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UpdateWaterV1RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UpdateWaterV1RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UpdateWaterV1RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UpdateWaterV1RequestValidationError) ErrorName() string {
+	return "UpdateWaterV1RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UpdateWaterV1RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUpdateWaterV1Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UpdateWaterV1RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UpdateWaterV1RequestValidationError{}
+
+// Validate checks the field values on UpdateWaterV1Response with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *UpdateWaterV1Response) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if v, ok := interface{}(m.GetWater()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UpdateWaterV1ResponseValidationError{
+				field:  "Water",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	return nil
+}
+
+// UpdateWaterV1ResponseValidationError is the validation error returned by
+// UpdateWaterV1Response.Validate if the designated constraints aren't met.
+type UpdateWaterV1ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UpdateWaterV1ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UpdateWaterV1ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UpdateWaterV1ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UpdateWaterV1ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UpdateWaterV1ResponseValidationError) ErrorName() string {
+	return "UpdateWaterV1ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UpdateWaterV1ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUpdateWaterV1Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UpdateWaterV1ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UpdateWaterV1ResponseValidationError{}

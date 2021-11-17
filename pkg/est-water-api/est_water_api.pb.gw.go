@@ -117,9 +117,20 @@ func local_request_EstWaterApiService_DescribeWaterV1_0(ctx context.Context, mar
 
 }
 
+var (
+	filter_EstWaterApiService_ListWatersV1_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+)
+
 func request_EstWaterApiService_ListWatersV1_0(ctx context.Context, marshaler runtime.Marshaler, client EstWaterApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq ListWatersV1Request
 	var metadata runtime.ServerMetadata
+
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_EstWaterApiService_ListWatersV1_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
 
 	msg, err := client.ListWatersV1(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
@@ -129,6 +140,13 @@ func request_EstWaterApiService_ListWatersV1_0(ctx context.Context, marshaler ru
 func local_request_EstWaterApiService_ListWatersV1_0(ctx context.Context, marshaler runtime.Marshaler, server EstWaterApiServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq ListWatersV1Request
 	var metadata runtime.ServerMetadata
+
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_EstWaterApiService_ListWatersV1_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
 
 	msg, err := server.ListWatersV1(ctx, &protoReq)
 	return msg, metadata, err
@@ -183,6 +201,74 @@ func local_request_EstWaterApiService_RemoveWaterV1_0(ctx context.Context, marsh
 	}
 
 	msg, err := server.RemoveWaterV1(ctx, &protoReq)
+	return msg, metadata, err
+
+}
+
+func request_EstWaterApiService_UpdateWaterV1_0(ctx context.Context, marshaler runtime.Marshaler, client EstWaterApiServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq UpdateWaterV1Request
+	var metadata runtime.ServerMetadata
+
+	newReader, berr := utilities.IOReaderFactory(req.Body)
+	if berr != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
+	}
+	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["water_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "water_id")
+	}
+
+	protoReq.WaterId, err = runtime.Uint64(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "water_id", err)
+	}
+
+	msg, err := client.UpdateWaterV1(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+
+}
+
+func local_request_EstWaterApiService_UpdateWaterV1_0(ctx context.Context, marshaler runtime.Marshaler, server EstWaterApiServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq UpdateWaterV1Request
+	var metadata runtime.ServerMetadata
+
+	newReader, berr := utilities.IOReaderFactory(req.Body)
+	if berr != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
+	}
+	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["water_id"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "water_id")
+	}
+
+	protoReq.WaterId, err = runtime.Uint64(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "water_id", err)
+	}
+
+	msg, err := server.UpdateWaterV1(ctx, &protoReq)
 	return msg, metadata, err
 
 }
@@ -282,6 +368,29 @@ func RegisterEstWaterApiServiceHandlerServer(ctx context.Context, mux *runtime.S
 		}
 
 		forward_EstWaterApiService_RemoveWaterV1_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
+	mux.Handle("PUT", pattern_EstWaterApiService_UpdateWaterV1_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/ozonmp.est_water_api.v1.EstWaterApiService/UpdateWaterV1", runtime.WithHTTPPathPattern("/v1/waters/{water_id}"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_EstWaterApiService_UpdateWaterV1_0(rctx, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_EstWaterApiService_UpdateWaterV1_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -406,6 +515,26 @@ func RegisterEstWaterApiServiceHandlerClient(ctx context.Context, mux *runtime.S
 
 	})
 
+	mux.Handle("PUT", pattern_EstWaterApiService_UpdateWaterV1_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/ozonmp.est_water_api.v1.EstWaterApiService/UpdateWaterV1", runtime.WithHTTPPathPattern("/v1/waters/{water_id}"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_EstWaterApiService_UpdateWaterV1_0(rctx, inboundMarshaler, client, req, pathParams)
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_EstWaterApiService_UpdateWaterV1_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
 	return nil
 }
 
@@ -417,6 +546,8 @@ var (
 	pattern_EstWaterApiService_ListWatersV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "waters"}, ""))
 
 	pattern_EstWaterApiService_RemoveWaterV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "waters", "water_id"}, ""))
+
+	pattern_EstWaterApiService_UpdateWaterV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "waters", "water_id"}, ""))
 )
 
 var (
@@ -427,4 +558,6 @@ var (
 	forward_EstWaterApiService_ListWatersV1_0 = runtime.ForwardResponseMessage
 
 	forward_EstWaterApiService_RemoveWaterV1_0 = runtime.ForwardResponseMessage
+
+	forward_EstWaterApiService_UpdateWaterV1_0 = runtime.ForwardResponseMessage
 )

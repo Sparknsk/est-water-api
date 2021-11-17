@@ -4,6 +4,7 @@ package ozonmp.est_water_api.v1;
 
 import "validate/validate.proto";
 import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/ozonmp/est-water-api/pkg/est-water-api;est_water_api";
 
@@ -34,6 +35,13 @@ service EstWaterApiService {
       delete: "/v1/waters/{water_id}"
     };
   }
+  // UpdateWaterV1 - Update a water autotransport
+  rpc UpdateWaterV1(UpdateWaterV1Request) returns (UpdateWaterV1Response) {
+    option (google.api.http) = {
+      put: "/v1/waters/{water_id}"
+      body: "*"
+    };
+  }
 }
 
 message Water {
@@ -43,6 +51,17 @@ message Water {
   string manufacturer = 4;
   string material = 5;
   uint32 speed = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message WaterEvent {
+  uint64 id = 1;
+  uint64 water_id = 2;
+  string type = 3;
+  string status = 4;
+  Water entity = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
 }
 
 message CreateWaterV1Request {
@@ -65,7 +84,10 @@ message DescribeWaterV1Response {
   Water water = 1;
 }
 
-message ListWatersV1Request {}
+message ListWatersV1Request {
+  uint64 limit = 1 [(validate.rules).uint64 = {gt: 0, lte: 50}];
+  uint64 offset = 2 [(validate.rules).uint64.gte = 0];
+}
 
 message ListWatersV1Response {
   repeated Water waters = 1;
@@ -76,3 +98,13 @@ message RemoveWaterV1Request {
 }
 
 message RemoveWaterV1Response {}
+
+message UpdateWaterV1Request {
+  uint64 water_id = 1 [(validate.rules).uint64.gt = 0];
+  string name = 2 [(validate.rules).string = {min_len: 3, max_len: 50}];
+  uint32 speed = 3 [(validate.rules).uint32 = {gt: 0, lte: 1000}];
+}
+
+message UpdateWaterV1Response {
+  Water water = 1;
+}

@@ -25,10 +25,12 @@ func setup(t *testing.T, eventsCount int) (
 	sender := mocks.NewMockEventSender(ctrl)
 	ctx, cancel := context.WithCancel(context.Background())
 
+	ts := time.Now().UTC()
 	dummyEvent := model.WaterEvent{
 		ID: uint64(1),
+		WaterId: uint64(1),
 		Type: model.Created,
-		Status: model.Processed,
+		Status: model.Unlocked,
 		Entity: model.NewWater(
 			uint64(1),
 			"name",
@@ -36,6 +38,9 @@ func setup(t *testing.T, eventsCount int) (
 			"manufacturer",
 			"material",
 			uint32(100),
+			&ts,
+			nil,
+			false,
 		),
 	}
 	events := make([]model.WaterEvent, 0, eventsCount)
@@ -83,7 +88,7 @@ func TestRetranslator(t *testing.T) {
 			eventsDone := make(chan bool, 1)
 			startId := uint64(0)
 			stopId := cfg.ConsumeSize
-			repo.EXPECT().Lock(gomock.Eq(cfg.ConsumeSize)).DoAndReturn(func(n uint64) ([]model.WaterEvent, error) {
+			repo.EXPECT().Lock(ctx, gomock.Eq(cfg.ConsumeSize)).DoAndReturn(func(ctx context.Context, n uint64) ([]model.WaterEvent, error) {
 				time.Sleep(time.Millisecond*100)
 
 				start := atomic.LoadUint64(&startId)
@@ -109,11 +114,11 @@ func TestRetranslator(t *testing.T) {
 				return nil
 			}).AnyTimes()
 
-			repo.EXPECT().Remove(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
+			repo.EXPECT().Remove(ctx, gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(ctx context.Context, eventIDs []uint64) error {
 				return nil
 			}).AnyTimes()
 
-			repo.EXPECT().Unlock(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
+			repo.EXPECT().Unlock(ctx, gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(ctx context.Context, eventIDs []uint64) error {
 				return nil
 			}).AnyTimes()
 
@@ -142,7 +147,7 @@ func TestRetranslator(t *testing.T) {
 			Sender: sender,
 		}
 
-		repo.EXPECT().Lock(gomock.Eq(cfg.ConsumeSize)).DoAndReturn(func(n uint64) ([]model.WaterEvent, error) {
+		repo.EXPECT().Lock(ctx, gomock.Eq(cfg.ConsumeSize)).DoAndReturn(func(ctx context.Context, n uint64) ([]model.WaterEvent, error) {
 			time.Sleep(time.Millisecond*100)
 			return events, nil
 		}).AnyTimes()
@@ -151,7 +156,7 @@ func TestRetranslator(t *testing.T) {
 			return errors.New("some error")
 		}).AnyTimes()
 
-		repo.EXPECT().Unlock(gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(eventIDs []uint64) error {
+		repo.EXPECT().Unlock(ctx, gomock.AssignableToTypeOf([]uint64{})).DoAndReturn(func(ctx context.Context, eventIDs []uint64) error {
 			return nil
 		}).AnyTimes()
 
