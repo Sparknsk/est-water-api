@@ -17,10 +17,14 @@ database:
   migrations: migrations
   driver: pgx
 
+kafka:
+  topic: "est-water-events"
+  brokers:
+    - "kafka:9092"
+    - "localhost:9094"
+
 telemetry:
   graylogPath: graylog:12201
 
 logging:
   level: "debug"
-  headerNameForRequestLevel: "x-request-log-level"
-  headerNameForResponseLog: "x-response-log-enabled"

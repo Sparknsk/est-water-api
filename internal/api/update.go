@@ -45,6 +45,6 @@ func (w *waterAPI) UpdateWaterV1 (
 	metric.IncTotalWaterState(metric.StateUpdated)
 
 	return &pb.UpdateWaterV1Response{
-		Water: modelWaterToProtobufWater(water),
+		Water: water.ModelWaterToProtobufWater(),
 	}, nil
 }

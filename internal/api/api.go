@@ -5,7 +5,6 @@ import (
 
 	"github.com/ozonmp/est-water-api/internal/model"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Service interface {
@@ -23,16 +22,4 @@ type waterAPI struct {
 
 func NewWaterAPI(waterService Service) pb.EstWaterApiServiceServer {
 	return &waterAPI{waterService: waterService}
-}
-
-func modelWaterToProtobufWater(water *model.Water) *pb.Water {
-	return &pb.Water{
-		Id: water.Id,
-		Name: water.Name,
-		Model: water.Model,
-		Manufacturer: water.Manufacturer,
-		Material: water.Material,
-		Speed: water.Speed,
-		CreatedAt: timestamppb.New(*water.CreatedAt),
-	}
 }

@@ -57,8 +57,21 @@ message Water {
 message WaterEvent {
   uint64 id = 1;
   uint64 water_id = 2;
-  string type = 3;
-  string status = 4;
+  enum Type {
+    CREATED = 0;
+    REMOVED = 1;
+    UPDATED_NAME = 2;
+    UPDATED_MODEL = 3;
+    UPDATED_MANUFACTURER = 4;
+    UPDATED_MATERIAL = 5;
+    UPDATED_SPEED = 6;
+  }
+  Type type = 3;
+  enum Status {
+    LOCK = 0;
+    UNLOCK = 1;
+  }
+  Status status = 4;
   Water entity = 5;
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
