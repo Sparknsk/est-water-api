@@ -103,6 +103,9 @@ message UpdateWaterV1Request {
   uint64 water_id = 1 [(validate.rules).uint64.gt = 0];
   string name = 2 [(validate.rules).string = {min_len: 3, max_len: 50}];
   uint32 speed = 3 [(validate.rules).uint32 = {gt: 0, lte: 1000}];
+  string model = 4 [(validate.rules).string = {min_len: 3, max_len: 50}];
+  string manufacturer = 5 [(validate.rules).string = {min_len: 3, max_len: 50}];
+  string material = 6 [(validate.rules).string = {min_len: 3, max_len: 50}];
 }
 
 message UpdateWaterV1Response {

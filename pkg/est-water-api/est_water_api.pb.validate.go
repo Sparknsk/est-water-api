@@ -884,6 +884,27 @@ func (m *UpdateWaterV1Request) Validate() error {
 		}
 	}
 
+	if l := utf8.RuneCountInString(m.GetModel()); l < 3 || l > 50 {
+		return UpdateWaterV1RequestValidationError{
+			field:  "Model",
+			reason: "value length must be between 3 and 50 runes, inclusive",
+		}
+	}
+
+	if l := utf8.RuneCountInString(m.GetManufacturer()); l < 3 || l > 50 {
+		return UpdateWaterV1RequestValidationError{
+			field:  "Manufacturer",
+			reason: "value length must be between 3 and 50 runes, inclusive",
+		}
+	}
+
+	if l := utf8.RuneCountInString(m.GetMaterial()); l < 3 || l > 50 {
+		return UpdateWaterV1RequestValidationError{
+			field:  "Material",
+			reason: "value length must be between 3 and 50 runes, inclusive",
+		}
+	}
+
 	return nil
 }
 

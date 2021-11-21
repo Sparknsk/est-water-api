@@ -13,7 +13,7 @@ type Service interface {
 	CreateWater(ctx context.Context, waterName string, waterModel string, waterMaterial string, waterManufacturer string, waterSpeed uint32) (*model.Water, error)
 	ListWaters(ctx context.Context, limit uint64, offset uint64) ([]model.Water, error)
 	RemoveWater(ctx context.Context, waterId uint64) error
-	UpdateWater(ctx context.Context, waterId uint64, waterName string, waterSpeed uint32) (*model.Water, error)
+	UpdateWater(ctx context.Context, waterId uint64, waterName string, waterModel string, waterManufacturer string, waterMaterial string, waterSpeed uint32) (*model.Water, error)
 }
 
 type waterAPI struct {
