@@ -20,8 +20,8 @@ database:
 kafka:
   topic: "est-water-events"
   brokers:
-    - "kafka:9092"
-    - "localhost:9094"
+    - "kafka-1:9092"
+    - "kafka-2:9092"
 
 telemetry:
   graylogPath: graylog:12201
