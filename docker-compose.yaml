@@ -65,8 +65,6 @@ services:
       - swaggerdata:/root/swagger
       - ./migrations:/root/migrations
       - ./config.yml:/root/config.yml
-    extra_hosts:
-      - "postgres:host-gateway"
     #labels:
     #  - "traefik.enable=true"
     #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.scheme=http"
@@ -101,8 +99,6 @@ services:
       - 9101:9101 # Metrics prometheus
     networks:
       - estnw
-    extra_hosts:
-      - "postgres:host-gateway"
 
   postgres:
     image: postgres:latest
@@ -248,9 +244,6 @@ services:
     ports:
       - 6831:6831/udp
       - 16686:16686
-    extra_hosts:
-      - "est-water-api:host-gateway"
-      - "retranslator:host-gateway"
     networks:
       - estnw
 
@@ -264,9 +257,6 @@ services:
         tag: prometheus
     ports:
       - 9090:9090
-    extra_hosts:
-      - "retranslator:host-gateway"
-      - "est-water-api:host-gateway"
     networks:
       - estnw
     volumes:
