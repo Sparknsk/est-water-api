@@ -5,6 +5,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 
 	"github.com/ozonmp/est-water-api/internal/database"
@@ -32,6 +33,13 @@ func NewRepo(db *sqlx.DB, batchSize uint) Repo {
 }
 
 func (r *repo) Get(ctx context.Context, waterId uint64) (*model.Water, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repo.Get()")
+	defer span.Finish()
+	span.LogKV(
+		"event", "water repository get",
+		"waterId", waterId,
+	)
+
 	query := database.StatementBuilder.
 		Select("*").
 		From(waterTableName).
@@ -63,6 +71,13 @@ func (r *repo) Get(ctx context.Context, waterId uint64) (*model.Water, error) {
 }
 
 func (r *repo) Create(ctx context.Context, water *model.Water) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repo.Create()")
+	defer span.Finish()
+	span.LogKV(
+		"event", "water repository create",
+		"water", water,
+	)
+
 	query := database.StatementBuilder.
 		Insert(waterTableName).
 		Columns("name", "model", "manufacturer", "material", "speed", "created_at").
@@ -71,13 +86,21 @@ func (r *repo) Create(ctx context.Context, water *model.Water) error {
 		RunWith(r.db)
 
 	if err := query.QueryRowContext(ctx).Scan(&water.Id); err != nil {
-		return errors.Wrap(err, "query.Scan() failed")
+		return errors.Wrap(err, "query.QueryRowContext().Scan() failed")
 	}
 
 	return nil
 }
 
 func (r *repo) List(ctx context.Context, limit uint64, offset uint64) ([]model.Water, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repo.List()")
+	defer span.Finish()
+	span.LogKV(
+		"event", "water repository list",
+		"limit", limit,
+		"offset", offset,
+	)
+
 	query := database.StatementBuilder.
 		Select("*").
 		From(waterTableName).
@@ -110,6 +133,13 @@ func (r *repo) List(ctx context.Context, limit uint64, offset uint64) ([]model.W
 }
 
 func (r *repo) Remove(ctx context.Context, waterId uint64) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repo.Remove()")
+	defer span.Finish()
+	span.LogKV(
+		"event", "water repository remove",
+		"waterId", waterId,
+	)
+
 	query := database.StatementBuilder.
 		Update(waterTableName).
 		Set("delete_status", true).
@@ -121,6 +151,13 @@ func (r *repo) Remove(ctx context.Context, waterId uint64) error {
 }
 
 func (r *repo) Update(ctx context.Context, water *model.Water) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repo.Update()")
+	defer span.Finish()
+	span.LogKV(
+		"event", "water repository update",
+		"water", water,
+	)
+
 	query := database.StatementBuilder.
 		Update(waterTableName).
 		Set("name", water.Name).

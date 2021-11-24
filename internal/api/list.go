@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/ozonmp/est-water-api/internal/logger"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
 )
 
@@ -17,12 +17,18 @@ func (w *waterAPI) ListWatersV1(
 ) (*pb.ListWatersV1Response, error) {
 
 	if err := req.Validate(); err != nil {
+		logger.ErrorKV(ctx, "ListWatersV1() validation error",
+			"err", errors.Wrapf(err, "req.Validate() failed with %v", req),
+		)
+
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	waters, err := w.waterService.ListWaters(ctx, req.Limit, req.Offset)
 	if err != nil {
-		log.Error().Err(errors.Wrap(err, "ListWatersV1() failed")).Msg("ListWatersV1() unable to list")
+		logger.ErrorKV(ctx, "ListWatersV1() unable to list",
+			"err", errors.Wrapf(err, "waterService.ListWaters() failed with %v", req),
+		)
 
 		return nil, status.Error(codes.Internal, "unable to list water entity")
 	}

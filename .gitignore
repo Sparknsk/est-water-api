@@ -3,5 +3,5 @@
 .venv
 swagger/
 bin/
-data/
 main
+docker/grafana/data

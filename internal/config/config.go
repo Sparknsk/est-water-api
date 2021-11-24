@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -71,7 +72,7 @@ type Metrics struct {
 type Jaeger struct {
 	Service string `yaml:"service"`
 	Host    string `yaml:"host"`
-	Port    string `yaml:"port"`
+	Port    int    `yaml:"port"`
 }
 
 // Kafka - contains all parameters kafka information.
@@ -91,16 +92,35 @@ type Status struct {
 	ReadinessPath string `yaml:"readinessPath"`
 }
 
+type Telemetry struct {
+	GraylogPath string `yaml:"graylogPath"`
+}
+
+type Logging struct {
+	Level                     string `yaml:"level"`
+	HeaderNameForRequestLevel string `yaml:"headerNameForRequestLevel"`
+	HeaderNameForResponseLog  string `yaml:"headerNameForResponseLog"`
+}
+
+func (l *Logging) IsDebug() bool {
+	if l.Level == "debug" {
+		return true
+	}
+	return false
+}
+
 // Config - contains all configuration parameters in config package.
 type Config struct {
-	Project  Project  `yaml:"project"`
-	Grpc     Grpc     `yaml:"grpc"`
-	Rest     Rest     `yaml:"rest"`
-	Database Database `yaml:"database"`
-	Metrics  Metrics  `yaml:"metrics"`
-	Jaeger   Jaeger   `yaml:"jaeger"`
-	Kafka    Kafka    `yaml:"kafka"`
-	Status   Status   `yaml:"status"`
+	Project     Project     `yaml:"project"`
+	Grpc        Grpc        `yaml:"grpc"`
+	Rest        Rest        `yaml:"rest"`
+	Database    Database    `yaml:"database"`
+	Metrics     Metrics     `yaml:"metrics"`
+	Jaeger      Jaeger      `yaml:"jaeger"`
+	Kafka       Kafka       `yaml:"kafka"`
+	Status      Status      `yaml:"status"`
+	Telemetry   Telemetry   `yaml:"telemetry"`
+	Logging     Logging     `yaml:"logging"`
 }
 
 // ReadConfigYML - read configurations from file and init instance Config.
@@ -111,7 +131,7 @@ func ReadConfigYML(filePath string) error {
 
 	file, err := os.Open(filepath.Clean(filePath))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "os.Open() failed")
 	}
 	defer func() {
 		_ = file.Close()
@@ -119,7 +139,7 @@ func ReadConfigYML(filePath string) error {
 
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(&cfg); err != nil {
-		return err
+		return errors.Wrap(err, "decoder.Decode() failed")
 	}
 
 	cfg.Project.Version = version

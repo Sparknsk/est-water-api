@@ -3,10 +3,14 @@
 ARG GITHUB_PATH=github.com/ozonmp/est-water-api
 
 FROM golang:1.16-alpine AS builder
-RUN apk add --update make git protoc protobuf protobuf-dev curl
-COPY . /home/${GITHUB_PATH}
+
 WORKDIR /home/${GITHUB_PATH}
-RUN make deps-go && make build-go
+
+RUN apk add --update make git protoc protobuf protobuf-dev curl jq
+COPY Makefile Makefile
+RUN make deps-go
+COPY . .
+RUN make build-go
 
 # gRPC Server
 

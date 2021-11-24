@@ -8,6 +8,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 
 	"github.com/ozonmp/est-water-api/internal/database"
@@ -33,6 +34,13 @@ func NewEventRepo(db *sqlx.DB) EventRepo {
 }
 
 func (er *eventRepo) Lock(ctx context.Context, n uint64) ([]model.WaterEvent, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "eventRepo.Lock()")
+	defer span.Finish()
+	span.LogKV(
+		"event", "water event repository lock",
+		"n", n,
+	)
+
 	subQuery := database.StatementBuilder.
 		Select("id").
 		From(waterEventTableName).
@@ -78,6 +86,13 @@ func (er *eventRepo) Lock(ctx context.Context, n uint64) ([]model.WaterEvent, er
 }
 
 func (er *eventRepo) Unlock(ctx context.Context, eventIDs []uint64) (err error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "eventRepo.Unlock()")
+	defer span.Finish()
+	span.LogKV(
+		"event", "water event repository unlock",
+		"eventIDs", eventIDs,
+	)
+
 	query := database.StatementBuilder.
 		Update(waterEventTableName).
 		Set("status", "unlock").
@@ -90,6 +105,13 @@ func (er *eventRepo) Unlock(ctx context.Context, eventIDs []uint64) (err error) 
 }
 
 func (er *eventRepo) Remove(ctx context.Context, eventIDs []uint64) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "eventRepo.Remove()")
+	defer span.Finish()
+	span.LogKV(
+		"event", "water event repository remove",
+		"eventIDs", eventIDs,
+	)
+
 	query := database.StatementBuilder.
 		Delete(waterEventTableName).
 		Where(sq.Eq{"id": eventIDs}).
@@ -100,6 +122,13 @@ func (er *eventRepo) Remove(ctx context.Context, eventIDs []uint64) error {
 }
 
 func (er *eventRepo) Add(ctx context.Context, events []model.WaterEvent) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "eventRepo.Add()")
+	defer span.Finish()
+	span.LogKV(
+		"event", "water event repository add",
+		"events", events,
+	)
+
 	query := database.StatementBuilder.
 		Insert(waterEventTableName).
 		Columns("water_id", "type", "status", "payload", "created_at")

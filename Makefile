@@ -24,6 +24,10 @@ endif
 run:
 	go run cmd/grpc-server/main.go
 
+.PHONY: run-retranslator
+run-retranslator:
+	go run cmd/est-water-api/main.go
+
 .PHONY: lint
 lint:
 	golangci-lint run ./...
@@ -38,10 +42,10 @@ test:
 # ----------------------------------------------------------------
 
 .PHONY: generate
-generate: .generate-install-buf .generate-go .generate-python .generate-finalize-go .generate-finalize-python
+generate: .generate-install-buf .generate-go .generate-python .generate-finalize-go .generate-finalize-python .generate-swagger-addition
 
 .PHONY: generate
-generate-go: .generate-install-buf .generate-go .generate-finalize-go
+generate-go: .generate-install-buf .generate-go .generate-finalize-go .generate-swagger-addition
 
 .generate-install-buf:
 	@ command -v buf 2>&1 > /dev/null || (echo "Install buf" && \
@@ -62,6 +66,12 @@ generate-go: .generate-install-buf .generate-go .generate-finalize-go
 
 .generate-finalize-python:
 	find pypkg/est-water-api -type d -exec touch {}/__init__.py \;
+
+.generate-swagger-addition:
+	cd swagger/ozonmp/est_water_api/v1/ && \
+	jq '.paths[][].parameters += [{"name": "grpc-metadata-x-request-log-level", "in": "header", "required": false, "type": "string"}, {"name": "grpc-metadata-x-response-log-enabled", "in": "header", "required": false, "type": "string"}]' est_water_api.swagger.json > est_water_api.swagger.mod.json && \
+	cp est_water_api.swagger.mod.json est_water_api.swagger.json && \
+	rm est_water_api.swagger.mod.json
 
 # ----------------------------------------------------------------
 

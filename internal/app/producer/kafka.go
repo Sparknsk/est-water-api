@@ -2,15 +2,18 @@ package producer
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/gammazero/workerpool"
+	"github.com/pkg/errors"
+
+	"github.com/ozonmp/est-water-api/internal/app/metric"
 	"github.com/ozonmp/est-water-api/internal/app/repo"
 	"github.com/ozonmp/est-water-api/internal/app/sender"
+	"github.com/ozonmp/est-water-api/internal/logger"
 	"github.com/ozonmp/est-water-api/internal/model"
-
-	"github.com/gammazero/workerpool"
 )
 
 type Producer interface {
@@ -77,8 +80,10 @@ func (p *producer) Start(ctx context.Context) {
 					p.workerBatchSendUpdate(ctx, &workerBatchUpdate)
 					p.workerBatchSendClean(ctx, &workerBatchClean)
 				case event := <-p.events:
-					if err := p.sender.Send(&event); err != nil {
-						log.Printf("EventSender Send event error: %v\n", err)
+					if err := p.sender.Send(ctx, &event); err != nil {
+						logger.ErrorKV(ctx, "producer send event failed",
+							"err", errors.Wrapf(err, "sender.Send() failed with %v", event),
+						)
 
 						workerBatchUpdate = append(workerBatchUpdate, event.ID)
 						if len(workerBatchUpdate) >= int(p.workerBatchSize) {
@@ -114,9 +119,16 @@ func (p *producer) workerBatchSendUpdate(ctx context.Context, eventIDs *[]uint64
 		for _, id := range *eventIDs {
 			ids = append(ids, id)
 		}
+
+		metric.SubTotalWaterEventsNow(uint(len(ids)))
+
 		p.workerPool.Submit(func() {
 			if err := p.repo.Unlock(ctx, ids); err != nil {
-				log.Printf("EventRepo Unlock events error: %v\n", err)
+				logger.ErrorKV(ctx, "producer update failed",
+					"err", errors.Wrapf(err, "repo.Unlock() failed with ids=%v", ids),
+				)
+			} else {
+				logger.DebugKV(ctx, fmt.Sprintf("Unlocked eventIDs: %v", ids))
 			}
 		})
 		*eventIDs = nil
@@ -129,9 +141,16 @@ func (p *producer) workerBatchSendClean(ctx context.Context, eventIDs *[]uint64)
 		for _, id := range *eventIDs {
 			ids = append(ids, id)
 		}
+
+		metric.SubTotalWaterEventsNow(uint(len(ids)))
+
 		p.workerPool.Submit(func() {
 			if err := p.repo.Remove(ctx, ids); err != nil {
-				log.Printf("EventRepo Remove events error: %v\n", err)
+				logger.ErrorKV(ctx, "producer clean failed",
+					"err", errors.Wrapf(err, "repo.Remove() failed with ids=%v", ids),
+				)
+			} else {
+				logger.DebugKV(ctx, fmt.Sprintf("Removed eventIDs: %v", ids))
 			}
 		})
 		*eventIDs = nil

@@ -4,15 +4,25 @@ import (
 	"context"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 
 	"github.com/ozonmp/est-water-api/internal/model"
 )
 
 func (s *waterService) UpdateWater(ctx context.Context, waterId uint64, waterName string, waterSpeed uint32) (*model.Water, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "waterService.CreateWater()")
+	defer span.Finish()
+	span.LogKV(
+		"event", "service update water",
+		"waterId", waterId,
+		"waterName", waterName,
+		"waterSpeed", waterSpeed,
+	)
+
 	water, err := s.waterRepository.Get(ctx, waterId)
 	if err != nil {
-		return nil, errors.Wrap(err, "waterRepository.Get() failed")
+		return nil, errors.Wrapf(err, "waterRepository.Get() failed with id=%d", waterId)
 	}
 
 	if water == nil {
@@ -63,14 +73,14 @@ func (s *waterService) UpdateWater(ctx context.Context, waterId uint64, waterNam
 		}
 
 		if err := s.waterRepository.Update(ctx, water); err != nil {
-			return nil, errors.Wrap(err, "waterRepository.Update() failed")
+			return nil, errors.Wrapf(err, "waterRepository.Update() failed with %v", water)
 		}
 
 		if err := s.waterEventRepository.Add(ctx, waterEvents); err != nil {
 			if err := tx.Rollback(); err != nil {
 				return nil, errors.Wrap(err, "tx.Rollback() failed")
 			}
-			return nil, errors.Wrap(err, "waterEventRepository.Add() failed")
+			return nil, errors.Wrapf(err,"waterEventRepository.Add() failed with %v", waterEvents)
 		}
 
 		if err := tx.Commit(); err != nil {

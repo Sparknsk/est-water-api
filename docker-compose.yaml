@@ -4,7 +4,7 @@ services:
   nginx:
     image: nginx:latest
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
     ports:
       - 8080:8080
     networks:
@@ -32,7 +32,7 @@ services:
   est-water-api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./docker/est-water-api/Dockerfile
     restart: unless-stopped
     logging:
       driver: 'gelf'
@@ -63,6 +63,8 @@ services:
       - swaggerdata:/root/swagger
       - ./migrations:/root/migrations
       - ./config.yml:/root/config.yml
+    extra_hosts:
+      - "postgres:host-gateway"
     #labels:
     #  - "traefik.enable=true"
     #  - "traefik.http.services.est-water-api.loadbalancer.healthcheck.scheme=http"
@@ -78,6 +80,27 @@ services:
     #  - "traefik.http.middlewares.add-slash.redirectregex.permanent=true"
     #  - "traefik.http.middlewares.strip-prefix-api.stripprefix.prefixes=/api"
     #  - "traefik.http.services.est-water-api.loadbalancer.server.port=8080"
+
+  retranslator:
+    build:
+      context: .
+      dockerfile: ./docker/retranslator/Dockerfile
+    restart: unless-stopped
+    logging:
+      driver: 'gelf'
+      options:
+        gelf-address: 'udp://localhost:12201'
+        tag: retranslator
+    depends_on:
+      - postgres
+    links:
+      - postgres
+    ports:
+      - 9101:9101 # Metrics prometheus
+    networks:
+      - estnw
+    extra_hosts:
+      - "postgres:host-gateway"
 
   postgres:
     image: postgres:latest
@@ -196,6 +219,9 @@ services:
     ports:
       - 6831:6831/udp
       - 16686:16686
+    extra_hosts:
+      - "est-water-api:host-gateway"
+      - "retranslator:host-gateway"
     networks:
       - estnw
 
@@ -209,6 +235,9 @@ services:
         tag: prometheus
     ports:
       - 9090:9090
+    extra_hosts:
+      - "retranslator:host-gateway"
+      - "est-water-api:host-gateway"
     networks:
       - estnw
     volumes:
@@ -227,7 +256,8 @@ services:
     networks:
       - estnw
     volumes:
-      - "./data/grafana:/var/lib/grafana"
+      - ./docker/grafana/data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch-oss:7.10.2
@@ -236,6 +266,7 @@ services:
       - transport.host=localhost
       - network.host=0.0.0.0
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - cluster.routing.allocation.disk.threshold_enabled=false
     ulimits:
       memlock:
         soft: -1

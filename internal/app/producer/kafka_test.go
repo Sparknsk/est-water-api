@@ -6,12 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ozonmp/est-water-api/internal/mocks"
-	"github.com/ozonmp/est-water-api/internal/model"
-
 	"github.com/gammazero/workerpool"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+
+	"github.com/ozonmp/est-water-api/internal/logger"
+	"github.com/ozonmp/est-water-api/internal/mocks"
+	"github.com/ozonmp/est-water-api/internal/model"
 )
 
 func setup(t *testing.T, eventsCount int) (
@@ -27,6 +29,9 @@ func setup(t *testing.T, eventsCount int) (
 	sender := mocks.NewMockEventSender(ctrl)
 	workerPool := workerpool.New(1)
 	ctx, cancel := context.WithCancel(context.Background())
+
+	newLogger := logger.CloneWithLevel(ctx, zap.FatalLevel)
+	ctx = logger.AttachLogger(ctx, newLogger)
 
 	eventsCh := make(chan model.WaterEvent, eventsCount)
 
@@ -66,7 +71,7 @@ func TestProducer(t *testing.T) {
 				Repo: repo,
 			}
 
-			sender.EXPECT().Send(gomock.Eq(&model.WaterEvent{})).DoAndReturn(func(event *model.WaterEvent) error {
+			sender.EXPECT().Send(ctx, gomock.Eq(&model.WaterEvent{})).DoAndReturn(func(ctx context.Context, event *model.WaterEvent) error {
 				return nil
 			}).AnyTimes()
 
@@ -100,7 +105,7 @@ func TestProducer(t *testing.T) {
 			Repo: repo,
 		}
 
-		sender.EXPECT().Send(gomock.Eq(&model.WaterEvent{})).DoAndReturn(func(event *model.WaterEvent) error {
+		sender.EXPECT().Send(ctx, gomock.Eq(&model.WaterEvent{})).DoAndReturn(func(ctx context.Context, event *model.WaterEvent) error {
 			return errors.New("some error")
 		}).AnyTimes()
 

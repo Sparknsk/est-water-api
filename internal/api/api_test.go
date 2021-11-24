@@ -7,7 +7,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 
+	"github.com/ozonmp/est-water-api/internal/logger"
 	"github.com/ozonmp/est-water-api/internal/mocks"
 	"github.com/ozonmp/est-water-api/internal/model"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
@@ -25,6 +27,9 @@ func setup(t *testing.T) (
 	ctx := context.Background()
 
 	api := NewWaterAPI(service)
+
+	newLogger := logger.CloneWithLevel(ctx, zap.FatalLevel)
+	ctx = logger.AttachLogger(ctx, newLogger)
 
 	return service, ctx, api
 }
@@ -92,7 +97,6 @@ func TestApiDescribeWater(t *testing.T) {
 		expectedErrorMessagePart string
 	}{
 		"Validate error": {waterId: 0, expectedErrorMessagePart: "InvalidArgument"},
-		"404 error": {waterId: 1, expectedErrorMessagePart: "water not found"},
 	}
 	for testName, testCase := range testCases {
 		t.Run(testName, func(t *testing.T) {
@@ -132,6 +136,59 @@ func TestApiRemoveWater(t *testing.T) {
 
 			req := pb.RemoveWaterV1Request{WaterId: testCase.waterId}
 			_, err := api.RemoveWaterV1(ctx, &req)
+
+			assert.NotNil(t, err)
+			assert.Contains(t, err.Error(), testCase.expectedErrorMessagePart)
+		})
+	}
+}
+
+func TestApiUpdateWater(t *testing.T) {
+	testCases := map[string]struct {
+		waterId uint64
+		field string
+		value interface{}
+		expectedErrorMessagePart string
+	}{
+		"Validate error name empty": {field: "Name", value: "", expectedErrorMessagePart: "InvalidArgument"},
+		"Validate error name small": {field: "Name", value: "n", expectedErrorMessagePart: "InvalidArgument"},
+		"Validate error name big": {field: "Name", value: strings.Repeat("long-name", 10), expectedErrorMessagePart: "InvalidArgument"},
+		"Validate error speed small": {field: "Speed", value: 0, expectedErrorMessagePart: "InvalidArgument"},
+		"Validate error speed big": {field: "Speed", value: 1001, expectedErrorMessagePart: "InvalidArgument"},
+	}
+	for testName, testCase := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			service, ctx, api := setup(t)
+
+			dummyWater := model.Water{
+				Id: testCase.waterId,
+				Name: "name",
+				Model: "model",
+				Manufacturer: "manufacturer",
+				Material: "material",
+				Speed: 100,
+			}
+			switch testCase.field {
+			case "Name":
+				dummyWater.Name = testCase.value.(string)
+			case "Model":
+				dummyWater.Model = testCase.value.(string)
+			case "Manufacturer":
+				dummyWater.Manufacturer = testCase.value.(string)
+			case "Material":
+				dummyWater.Material = testCase.value.(string)
+			case "Speed":
+				dummyWater.Speed = uint32(testCase.value.(int))
+			}
+
+			service.EXPECT().
+				UpdateWater(gomock.Eq(ctx), gomock.Eq(dummyWater.Id), gomock.Eq(dummyWater.Name), gomock.Eq(dummyWater.Model)).
+				DoAndReturn(func(ctx context.Context, waterId uint64) error {
+					return nil
+				}).AnyTimes()
+
+			req := pb.UpdateWaterV1Request{WaterId: testCase.waterId}
+			_, err := api.UpdateWaterV1(ctx, &req)
 
 			assert.NotNil(t, err)
 			assert.Contains(t, err.Error(), testCase.expectedErrorMessagePart)

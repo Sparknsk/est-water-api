@@ -2,11 +2,15 @@ package consumer
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
+	"github.com/ozonmp/est-water-api/internal/app/metric"
 	"github.com/ozonmp/est-water-api/internal/app/repo"
+	"github.com/ozonmp/est-water-api/internal/logger"
 	"github.com/ozonmp/est-water-api/internal/model"
 )
 
@@ -62,13 +66,25 @@ func (c *consumer) Start(ctx context.Context) {
 				case <-ticker.C:
 					events, err := c.repo.Lock(ctx, c.batchSize)
 					if err != nil {
-						log.Printf("EventRepo Lock events error: %v\n", err)
+						logger.ErrorKV(ctx, "consumer lock events failed",
+							"err", errors.Wrap(err, "repo.Lock() failed"),
+						)
 						continue
 					}
 
+					var eventIDs []uint64
 					for _, event := range events {
 						c.events <- event
+						eventIDs = append(eventIDs, event.ID)
 					}
+
+					if len(eventIDs) > 0 {
+						logger.DebugKV(ctx, fmt.Sprintf("Locked eventIDs: %v", eventIDs))
+					}
+
+					totalEvents := uint(len(eventIDs))
+					metric.AddTotalWaterEventsNow(totalEvents)
+					metric.AddTotalWaterEvents(totalEvents)
 				case <-ctx.Done():
 					ticker.Stop()
 					return

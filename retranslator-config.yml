@@ -1,0 +1,26 @@
+project:
+  name: Ozon Code Platform Retranslator
+  environment: development
+
+metrics:
+  host: 0.0.0.0
+  port: 9101
+  path: /metrics
+
+database:
+  host: postgres
+  port: 5432
+  user: docker
+  password: docker
+  name: est_water_api
+  sslmode: disable
+  migrations: migrations
+  driver: pgx
+
+telemetry:
+  graylogPath: graylog:12201
+
+logging:
+  level: "debug"
+  headerNameForRequestLevel: "x-request-log-level"
+  headerNameForResponseLog: "x-response-log-enabled"

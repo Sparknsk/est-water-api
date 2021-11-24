@@ -6,16 +6,6 @@ import (
 	"github.com/ozonmp/est-water-api/internal/model"
 	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
 	"google.golang.org/protobuf/types/known/timestamppb"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-)
-
-var (
-	totalWaterNotFound = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "est_water_api_water_not_found_total",
-		Help: "Total number of waters that were not found",
-	})
 )
 
 type Service interface {
