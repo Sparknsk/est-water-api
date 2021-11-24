@@ -80,5 +80,6 @@ func (w *Water) ModelWaterToProtobufWater() *pb.Water {
 		Material: w.Material,
 		Speed: w.Speed,
 		CreatedAt: timestamppb.New(*w.CreatedAt),
+		UpdatedAt: timestamppb.New(*w.UpdatedAt),
 	}
 }
