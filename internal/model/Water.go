@@ -72,6 +72,11 @@ func (w *Water) Scan(src interface{}) (err error) {
 }
 
 func (w *Water) ModelWaterToProtobufWater() *pb.Water {
+	var updatedAt *timestamppb.Timestamp
+	if w.UpdatedAt != nil {
+		updatedAt = timestamppb.New(*w.UpdatedAt)
+	}
+
 	return &pb.Water{
 		Id: w.Id,
 		Name: w.Name,
@@ -80,6 +85,6 @@ func (w *Water) ModelWaterToProtobufWater() *pb.Water {
 		Material: w.Material,
 		Speed: w.Speed,
 		CreatedAt: timestamppb.New(*w.CreatedAt),
-		UpdatedAt: timestamppb.New(*w.UpdatedAt),
+		UpdatedAt: updatedAt,
 	}
 }
