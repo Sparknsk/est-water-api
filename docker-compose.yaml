@@ -363,3 +363,4 @@ volumes:
 networks:
   estnw:
     driver: bridge
+    name: est-water-network
