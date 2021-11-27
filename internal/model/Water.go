@@ -6,6 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
 )
 
 type Water struct {
@@ -65,4 +69,22 @@ func (w *Water) Scan(src interface{}) (err error) {
 
 	*w = water
 	return nil
+}
+
+func (w *Water) ModelWaterToProtobufWater() *pb.Water {
+	var updatedAt *timestamppb.Timestamp
+	if w.UpdatedAt != nil {
+		updatedAt = timestamppb.New(*w.UpdatedAt)
+	}
+
+	return &pb.Water{
+		Id: w.Id,
+		Name: w.Name,
+		Model: w.Model,
+		Manufacturer: w.Manufacturer,
+		Material: w.Material,
+		Speed: w.Speed,
+		CreatedAt: timestamppb.New(*w.CreatedAt),
+		UpdatedAt: updatedAt,
+	}
 }

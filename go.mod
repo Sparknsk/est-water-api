@@ -15,7 +15,6 @@ require (
 	github.com/ozonmp/est-water-api/pkg/est-water-api v0.0.0-00010101000000-000000000000
 	github.com/pressly/goose/v3 v3.1.0
 	github.com/prometheus/client_golang v1.11.0
-	github.com/rs/zerolog v1.24.0
 	github.com/stretchr/testify v1.7.0
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	google.golang.org/grpc v1.41.0
@@ -26,6 +25,7 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/Masterminds/squirrel v1.5.1
+	github.com/Shopify/sarama v1.30.0
 	github.com/pkg/errors v0.9.1
 	github.com/snovichkov/zap-gelf v1.0.1
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect

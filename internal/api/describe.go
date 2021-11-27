@@ -43,6 +43,6 @@ func (w *waterAPI) DescribeWaterV1(
 	}
 
 	return &pb.DescribeWaterV1Response{
-		Water: modelWaterToProtobufWater(water),
+		Water: water.ModelWaterToProtobufWater(),
 	}, nil
 }

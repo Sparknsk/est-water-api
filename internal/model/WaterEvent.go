@@ -4,6 +4,10 @@ import (
 	"database/sql/driver"
 	"errors"
 	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	pb "github.com/ozonmp/est-water-api/pkg/est-water-api"
 )
 
 const (
@@ -14,7 +18,9 @@ const (
 	UpdatedManufacturer
 	UpdatedMaterial
 	UpdatedSpeed
+)
 
+const (
 	Locked EventStatus = iota
 	Unlocked
 )
@@ -31,6 +37,18 @@ type WaterEvent struct {
 	Entity *Water `db:"payload"`
 	CreatedAt *time.Time `db:"created_at"`
 	UpdatedAt *time.Time `db:"updated_at"`
+}
+
+func (we *WaterEvent) ModelWaterEventToProtobufWaterEvent() *pb.WaterEvent {
+	return &pb.WaterEvent{
+		Id: we.ID,
+		WaterId: we.WaterId,
+		Type: pb.WaterEvent_Type(we.Type),
+		Status: pb.WaterEvent_Status(we.Status),
+		Entity: we.Entity.ModelWaterToProtobufWater(),
+		CreatedAt: timestamppb.New(*we.CreatedAt),
+		UpdatedAt: timestamppb.New(*we.UpdatedAt),
+	}
 }
 
 func (et EventType) Value() (driver.Value, error) {

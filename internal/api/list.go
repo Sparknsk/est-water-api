@@ -35,7 +35,7 @@ func (w *waterAPI) ListWatersV1(
 
 	var watersPb []*pb.Water
 	for _, water := range waters {
-		watersPb = append(watersPb, modelWaterToProtobufWater(&water))
+		watersPb = append(watersPb, water.ModelWaterToProtobufWater())
 	}
 
 	return &pb.ListWatersV1Response{

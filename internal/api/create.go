@@ -37,6 +37,6 @@ func (w *waterAPI) CreateWaterV1 (
 	metric.IncTotalWaterState(metric.StateCreate)
 
 	return &pb.CreateWaterV1Response{
-		Water: modelWaterToProtobufWater(water),
+		Water: water.ModelWaterToProtobufWater(),
 	}, nil
 }

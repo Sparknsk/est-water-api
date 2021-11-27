@@ -10,7 +10,15 @@ import (
 	"github.com/ozonmp/est-water-api/internal/model"
 )
 
-func (s *waterService) UpdateWater(ctx context.Context, waterId uint64, waterName string, waterSpeed uint32) (*model.Water, error) {
+func (s *waterService) UpdateWater(
+	ctx context.Context,
+	waterId uint64,
+	waterName string,
+	waterModel string,
+	waterManufacturer string,
+	waterMaterial string,
+	waterSpeed uint32,
+) (*model.Water, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "waterService.CreateWater()")
 	defer span.Finish()
 	span.LogKV(
@@ -35,34 +43,37 @@ func (s *waterService) UpdateWater(ctx context.Context, waterId uint64, waterNam
 	var waterEvents []model.WaterEvent
 
 	if waterName != water.Name {
-		water.Name = waterName
-
-		waterCopy := *water
 		waterEvents = append(
 			waterEvents,
-			model.WaterEvent{
-				WaterId: water.Id,
-				Type: model.UpdatedName,
-				Status: model.Unlocked,
-				Entity: &waterCopy,
-				CreatedAt: &ts,
-			},
+			s.updateField(water, "Name", waterName),
+		)
+	}
+
+	if waterModel != water.Model {
+		waterEvents = append(
+			waterEvents,
+			s.updateField(water, "Model", waterModel),
+		)
+	}
+
+	if waterManufacturer != water.Manufacturer {
+		waterEvents = append(
+			waterEvents,
+			s.updateField(water, "Manufacturer", waterManufacturer),
+		)
+	}
+
+	if waterMaterial != water.Material {
+		waterEvents = append(
+			waterEvents,
+			s.updateField(water, "Material", waterMaterial),
 		)
 	}
 
 	if waterSpeed != water.Speed {
-		water.Speed = waterSpeed
-
-		waterCopy := *water
 		waterEvents = append(
 			waterEvents,
-			model.WaterEvent{
-				WaterId: water.Id,
-				Type: model.UpdatedSpeed,
-				Status: model.Unlocked,
-				Entity: &waterCopy,
-				CreatedAt: &ts,
-			},
+			s.updateField(water, "Speed", waterSpeed),
 		)
 	}
 
@@ -89,4 +100,34 @@ func (s *waterService) UpdateWater(ctx context.Context, waterId uint64, waterNam
 	}
 
 	return water, nil
+}
+
+func (s *waterService) updateField(water *model.Water, field string, value interface{}) model.WaterEvent {
+	var eventType model.EventType
+
+	if field == "Name" {
+		water.Name = value.(string)
+		eventType = model.UpdatedName
+	} else if field == "Model" {
+		water.Model = value.(string)
+		eventType = model.UpdatedModel
+	} else if field == "Manufacturer" {
+		water.Manufacturer = value.(string)
+		eventType = model.UpdatedManufacturer
+	} else if field == "Material" {
+		water.Material = value.(string)
+		eventType = model.UpdatedMaterial
+	} else if field == "Speed" {
+		water.Speed = value.(uint32)
+		eventType = model.UpdatedSpeed
+	}
+
+	waterCopy := *water
+	return model.WaterEvent{
+		WaterId: water.Id,
+		Type: eventType,
+		Status: model.Unlocked,
+		Entity: &waterCopy,
+		CreatedAt: waterCopy.UpdatedAt,
+	}
 }

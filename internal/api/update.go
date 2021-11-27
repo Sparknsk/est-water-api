@@ -27,7 +27,7 @@ func (w *waterAPI) UpdateWaterV1 (
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	water, err := w.waterService.UpdateWater(ctx, req.WaterId, req.Name, req.Speed)
+	water, err := w.waterService.UpdateWater(ctx, req.WaterId, req.Name, req.Model, req.Manufacturer, req.Material, req.Speed)
 	if err != nil {
 		if errors.Is(err, water_service.WaterNotFound) {
 			metric.IncTotalWaterNotFound()
@@ -45,6 +45,6 @@ func (w *waterAPI) UpdateWaterV1 (
 	metric.IncTotalWaterState(metric.StateUpdated)
 
 	return &pb.UpdateWaterV1Response{
-		Water: modelWaterToProtobufWater(water),
+		Water: water.ModelWaterToProtobufWater(),
 	}, nil
 }

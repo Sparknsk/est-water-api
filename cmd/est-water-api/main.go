@@ -86,6 +86,15 @@ func main() {
 		}
 	}()
 
+	eventSender, err := sender.NewEventSender(cfg.Kafka.Brokers, cfg.Kafka.Topic)
+	if err != nil {
+		logger.FatalKV(ctx, "Failed init kafka producer",
+			"err", errors.Wrap(err, "sender.NewEventSender() failed"),
+		)
+	}
+
+	eventRepo := repo.NewEventRepo(db)
+
 	cfgRetranslator := retranslator.Config{
 		ChannelSize: 512,
 
@@ -98,8 +107,8 @@ func main() {
 		WorkerBatchSize: 4,
 		WorkerBatchTimeout: time.Millisecond*5000,
 
-		Repo: repo.NewEventRepo(db),
-		Sender: sender.NewEventSender(),
+		Repo: eventRepo,
+		Sender: eventSender,
 	}
 
 	retranslator.NewRetranslator(cfgRetranslator).Start(ctx)
